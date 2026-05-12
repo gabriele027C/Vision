@@ -1,0 +1,40 @@
+---
+description: "Vision project conventions and architecture"
+globs: ["**/*"]
+---
+
+# Vision — Crypto & Stock Monitoring System
+
+## Project Structure
+
+```
+Vision/
+├── .cursor/          # Cursor config (MCP, rules)
+├── scripts/          # Pipeline scripts (PDF extraction, chunking, indexing)
+├── docs/
+│   ├── raw/          # Extracted markdown from PDFs
+│   ├── knowledge/    # Cleaned/structured markdown (manually reviewed)
+│   └── chunks/       # Chunked JSON for indexing
+├── vector_store/     # ChromaDB persistent storage
+├── mcp_server/       # MCP server for knowledge base access
+└── src/              # Vision application source code (to be built)
+```
+
+## Key Abbreviations
+
+- **RVOL** — Relative Volume
+- **OBI** — Order Book Imbalance
+- **CVD** — Cumulative Volume Delta
+- **VWAP** — Volume Weighted Average Price
+- **SOS** — Sign of Strength (Wyckoff)
+- **LPS** — Last Point of Support (Wyckoff)
+- **PS** — Preliminary Support (Wyckoff)
+- **SC** — Selling Climax (Wyckoff)
+- **AR** — Automatic Rally (Wyckoff)
+- **ST** — Secondary Test (Wyckoff)
+
+## Principles
+
+1. Every metric implementation must be grounded in theory from the knowledge base.
+2. Search the knowledge base before writing new code for any trading concept.
+3. Code must be well-typed and testable.

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "vision-knowledge": {
+      "command": "python",
+      "args": ["C:\\Users\\Gabri\\Vision\\mcp_server\\server.py"],
+      "env": {}
+    }
+  }
+}

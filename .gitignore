@@ -1,0 +1,4 @@
+/.env
+
+# ChromaDB generated local storage (rigenerabile con gli script di indexing)
+vector_store/
