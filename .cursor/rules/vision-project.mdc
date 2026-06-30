@@ -9,32 +9,79 @@ globs: ["**/*"]
 
 ```
 Vision/
-├── .cursor/          # Cursor config (MCP, rules)
-├── scripts/          # Pipeline scripts (PDF extraction, chunking, indexing)
+├── .cursor/
+│   ├── mcp.json          # MCP server configuration
+│   └── rules/            # Cursor rules (this file, vision-knowledge.mdc)
+├── scripts/
+│   ├── 01_extract_pdf.py # PDF → Markdown
+│   ├── 02_chunk.py       # Markdown → JSON chunks (tiktoken, 300-1200; sentence-aware splits)
+│   ├── 03_index.py       # JSON chunks → ChromaDB (supports --fresh and resume)
+│   └── chunk_quality_audit_v2.py  # RAG quality audit tool
 ├── docs/
-│   ├── raw/          # Extracted markdown from PDFs
-│   ├── knowledge/    # Cleaned/structured markdown (manually reviewed)
-│   └── chunks/       # Chunked JSON for indexing
-├── vector_store/     # ChromaDB persistent storage
-├── mcp_server/       # MCP server for knowledge base access
-└── src/              # Vision application source code (to be built)
+│   ├── raw/              # Extracted markdown from PDFs (36 files)
+│   ├── knowledge/        # Cleaned/structured markdown (manually reviewed)
+│   ├── chunks/           # all_chunks.json (~8.9k chunks; word-split overlap cap; ~4.44M tokens)
+│   └── RAG_report.md             # Report sistema RAG + audit qualità (30 core + 15 query complesse); trend vs `chunk_quality_baseline.json`
+├── vector_store/         # ChromaDB persistent storage (gitignored)
+├── mcp_server/
+│   └── server.py         # FastMCP server exposing search_vision_docs, get_module_spec, list_sources
+└── src/                  # Vision application source code (to be built)
 ```
+
+## Knowledge Base Status (2026-05-14)
+
+- **36 sources**, **~8,868 chunks** indexed (8694 in Chroma; **174** skipped: `tokens` < 120), embeddings: `gemini-embedding-2`
+- **OCR (Tesseract + PyMuPDF):** `scripts/01_extract_pdf_ocr.py` — tre PDF precedentemente a 0 testo ora estratti; alcune pagine possono restare vuote (OCR senza output).
+- **Chunking params**: MIN=300 tokens, MAX=1200 tokens, tokenizer=`cl100k_base`, sentence-aware splits + merge token recount
+- **Known issue (audit heuristic):** residui su `ends_mid_sentence` / `starts_mid_sentence` — re-run `chunk_quality_audit_v2.py` to refresh `docs/RAG_report.md` after large corpus changes
 
 ## Key Abbreviations
 
-- **RVOL** — Relative Volume
-- **OBI** — Order Book Imbalance
-- **CVD** — Cumulative Volume Delta
+### Order Flow & Volume
+- **RVOL** — Relative Volume (volume vs. average volume)
 - **VWAP** — Volume Weighted Average Price
-- **SOS** — Sign of Strength (Wyckoff)
-- **LPS** — Last Point of Support (Wyckoff)
-- **PS** — Preliminary Support (Wyckoff)
-- **SC** — Selling Climax (Wyckoff)
-- **AR** — Automatic Rally (Wyckoff)
-- **ST** — Secondary Test (Wyckoff)
+- **OBI** — Order Book Imbalance (bid vs. ask depth ratio)
+- **CVD** — Cumulative Volume Delta ⚠️ *not in knowledge base — no source covers it*
+- **VPIN** — Volume-synchronized Probability of Informed Trading (Flow Toxicity paper)
+- **POC** — Point of Control (Market Profile: price with most volume)
+- **VAH / VAL** — Value Area High / Low (Market Profile: 70% of volume range)
+
+### Wyckoff Events (Accumulation)
+- **PS** — Preliminary Support
+- **SC** — Selling Climax
+- **AR** — Automatic Rally
+- **ST** — Secondary Test
+- **SOS** — Sign of Strength
+- **LPS** — Last Point of Support
+- **Spring** — False break below support (Phase C test)
+- **JAC** — Jump Across the Creek (breakout above resistance)
+
+### Wyckoff Events (Distribution)
+- **PSY** — Preliminary Supply
+- **BC** — Buying Climax
+- **UT** — Upthrust
+- **UTAD** — Upthrust After Distribution (Phase C test)
+- **SOW** — Sign of Weakness
+- **LPSY** — Last Point of Supply
+
+### Market Profile
+- **TPO** — Time Price Opportunity (building block of Market Profile)
+- **IB** — Initial Balance (first hour range)
+- **VA** — Value Area (70% of TPO activity)
+
+### Quantitative
+- **IR** — Information Ratio
+- **IC** — Information Coefficient (skill measure)
+- **CUSUM** — Cumulative Sum filter (de Prado event sampling)
 
 ## Principles
 
-1. Every metric implementation must be grounded in theory from the knowledge base.
-2. Search the knowledge base before writing new code for any trading concept.
-3. Code must be well-typed and testable.
+1. **Theory before code.** No new metric, pattern detector, or risk rule without a prior `search_vision_docs` (or `get_module_spec`) hit that supports the definition and parameters.
+2. **Traceability.** Every non-trivial implementation must be traceable to a source: cite as `[BookName — page X]` (or page range if the chunk spans `page`–`page_end`).
+3. **Known gaps are explicit.** Do not pretend the corpus is complete. **CVD** is absent (no source). **Elliott**, **Pring on Momentum**, and **Natenberg** are OCR’d from scans — they are indexed but OCR errors are possible; do not treat noisy passages as ground truth without cross-checking another source when available.
+4. **Chunk reality.** Chunk ends are mostly sentence-aligned; some snippets still start or end mid-sentence (see latest `docs/RAG_report.md`). When a snippet looks truncated, run a second search or `get_module_spec` on the same source instead of inventing the rest of the sentence.
+5. **Pipeline hygiene.** After changing `BOOK_METADATA`, chunking logic, or raw markdown: run `02_chunk.py`, then `03_index.py` (resume OK unless you need a clean store — then `--fresh`). Stale vector data invalidates category filters and citations.
+6. **Code quality.** Prefer clear types, small pure functions for math, and tests where the knowledge base supplies a formula or worked example you can reproduce in numbers.
+7. **Disagreements.** If two retrieved sources conflict, or theory clashes with a future `spec`, state the conflict and **ask the user** which authority to follow — do not silently average opinions.
+8. **Naming and units.** Reuse the book’s own terms and symbols in code and docs when they map 1:1 to an implementation. If the source leaves timeframe, sampling, or units implicit, state your assumption explicitly in code comments or user-facing copy — do not bake hidden defaults.
+9. **Secrets and env.** Never commit `.env`, API keys, or `vector_store/` blobs. Regenerate the store from scripts when sharing the repo or opening a PR.

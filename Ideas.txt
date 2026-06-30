@@ -1,0 +1,61 @@
+- Creare l'app web paragonandola ad un uomo composito che :
+   -  monitora giorno per giorno le migliori 100 cripto e 100 stock h24 (Bybit, Binance e Nasdaq Data)
+   -  verifica i volumi e li paragona con i volumi settimanali passati:
+       questo fa si che quando entra denaro su questi asset monitorati noi 
+       lo sappiamo quasi istantaneamente. Quando l'uomo composito (Vision) 
+       rileva  un aumento di volumi del 20/25% rispetto ai volumi passati 
+       ci segnala gli asset interessati e li valuta seguendo le metriche e 
+       le strategie utilizzate per valutare la direzione dei movimenti (long/short)
+
+       Livello 1 — Media semplice 4 settimane    → trend recente
+       Livello 2 — Media pesata 12 settimane     → baseline statistica robusta
+       Livello 3 — Z-Score su 52 settimane       → anomalia statistica vera
+       Quando tutti e tre convergono sopra soglia → segnale Smart Money confermato.
+       Mostriamo i candidati in watchlist già dal Livello 1. Li valutiamo con metriche/indicatori e li processiamo secondo la strategia
+       per capire la loro direzione.  
+
+   - Dobbiamo creare una strategia eccellente che ci darà la direzione degli asset
+      utilizzando il materiale del RAG system ed oltre. 
+      
+   - Provider dati: 
+        CoinGlass + Glassnode + COT gratis/ poi Unusual Whales---> Cripto
+
+        Nasdaq Data Link — COT CFTC + Finviz Elite + Polygon.io (stock screener + API) --> Stock
+
+   - Binance e Yahoo Finance per avere dati storici su RVOL Weeky e Volumes !!!! 
+
+   - Stock e Cripto che entrano nel loop vengono scelte mensilmente
+   - Solo dati reali, no modalità provvisorie o simboli fissi presi da liste preimpostate.
+   - Sistema professionale di visione totale su cripto e stock.
+
+
+Idea logica funzionamento Layers :  Prima
+
+     Layer 1 
+     volume/derivati (CoinGlass-style) → 
+     Layer 2 struttura prezzo →
+     Layer 3 eventi (Funding, expiry future, annunci) →
+      al posto di “opzioni equity”, derivati + on-chain (funding, OI, exchange netflow) 
+     → Layer 5 ridotto a ETF spot dove esiste + COT su future regolamentati come contesto istituzionale, non come volume spot.
+
+Idea logica funzionamento Layers :  Seconda
+
+Dobbiamo creare un sistema che indica entrate ed uscite per operazioni scalping (livelli 15m/5m/1m) ,
+intraday (D/4h/1h)  e swing. 
+Quando si apre il sistema dobbiamo scegliere se tradare Stocks o Crypto. 
+Dobbiamo trovare i BOS  sui vari timeframe cosi da avere entrate più sicure possibili.
+Dobbiamo monitorare le top 20 crypto e le top 20 Stocks.
+Dobbiamo far si che la watchlist generata sia popolata dagli asset che mostrano gli score più alti,
+ed in maniera che si cambino di posizione in base alla forza dello score,
+quindi quando un asset sta cambiando struttura (BOS) dobbiamo segnalarlo immediatamente.
+Per le stocks dobbiamo avere una suddivisione in settori, 
+quindi per ogni settore dobbiamo avere 20 stocks con i loro scores. 
+
+con l'analisi tecnica vanno monitorati :
+trend, BOS, Order Block, VWAP/Vol, Vol Anomali, VWAP premarket,VWAP avanzato, CVD , Forza relativa,
+FVG, BB squeeze, EMA 200 4h, EMA 9 / SMA20 cross, TICK > -200, 
+OBV divergenza, RSI divergenza, VIX < 25, QQQ trend up , prezzo > VWAP , fibo
+ADR% disponibile
+
+dobbiamo anche collegare il tutto ad un broker account demo per testare la strategia 
+

@@ -99,6 +99,34 @@ def get_collection():
     return _collection
 
 
+def rerank_chroma_query_results(results: dict, min_tokens: int = 120, penalty: float = 0.0012) -> dict:
+    """Penalize very short chunks so dense passages rank above caption fragments."""
+    if not results or not results.get("documents") or not results["documents"][0]:
+        return results
+    docs = results["documents"][0]
+    metas = results["metadatas"][0]
+    dists = list(results["distances"][0])
+    n = len(docs)
+    ids_list = list(results["ids"][0]) if results.get("ids") else None
+
+    def adjusted(i: int) -> float:
+        t = metas[i].get("tokens", 0)
+        try:
+            ti = int(t)
+        except (TypeError, ValueError):
+            ti = 0
+        return dists[i] + max(0, min_tokens - ti) * penalty
+
+    order = sorted(range(n), key=adjusted)
+    out = dict(results)
+    out["documents"] = [[docs[i] for i in order]]
+    out["metadatas"] = [[metas[i] for i in order]]
+    out["distances"] = [[dists[i] for i in order]]
+    if ids_list is not None:
+        out["ids"] = [[ids_list[i] for i in order]]
+    return out
+
+
 def format_results(results: dict) -> str:
     """Format ChromaDB results into readable text with citations."""
     if not results or not results.get("documents") or not results["documents"][0]:
@@ -171,6 +199,7 @@ def search_vision_docs(
     except Exception:
         results = collection.query(query_texts=[query], n_results=n_results)
 
+    results = rerank_chroma_query_results(results)
     return format_results(results)
 
 

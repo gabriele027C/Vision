@@ -2,19 +2,20 @@
 
 Sistema di knowledge base per il progetto **Vision** (monitoraggio crypto e stock).
 Trasforma manuali di trading, finanza quantitativa e market microstructure in una
-base di conoscenza cercabile, accessibile direttamente da Cursor tramite MCP server.
+base di conoscenza cercabile, accessibile da Cursor tramite MCP server.
+
+**Stato (maggio 2026):** 36 fonti nei chunk, **8868** chunk in `all_chunks.json`, circa **4,44M** token (media ~501 token/chunk). In ChromaDB vengono indicizzati i chunk con almeno **120** token (i frammenti più piccoli vengono saltati per non inquinare la ricerca). Embedding predefinito: **Google `gemini-embedding-2`** (3072 dimensioni).
 
 ---
 
 ## Cosa fa questo progetto
 
-1. **Estrae testo** da 35 PDF (libri e paper accademici) in Markdown
-2. **Taglia il testo** in chunk semantici con metadata (source, tipo, categoria, pagina)
-3. **Indicizza i chunk** con embedding vettoriali (Google gemini-embedding-2) in ChromaDB
-4. **Espone 3 tool MCP** che Cursor può chiamare per cercare informazioni nella knowledge base
+1. **Estrae testo** dai PDF nella cartella sorgente in Markdown (`docs/raw/`) — estrazione nativa con PyMuPDF; per scansioni senza testo selezionabile, script dedicato **OCR** (Tesseract + PyMuPDF).
+2. **Taglia il testo** in chunk con confini il più possibile allineati alle frasi, con metadata (source, tipo, categoria, pagina).
+3. **Indicizza i chunk** in ChromaDB con embedding vettoriali.
+4. **Espone 3 tool MCP** che Cursor può chiamare per interrogare la knowledge base.
 
-Quando l'agente Cursor lavora su Vision, può cercare automaticamente nei manuali
-la teoria corretta prima di implementare formule, pattern o strategie.
+Quando l’agente Cursor lavora su Vision, può cercare nei manuali la teoria corretta prima di implementare formule, pattern o strategie.
 
 ---
 
@@ -26,23 +27,29 @@ Vision/
 │   ├── mcp.json                  # Configurazione MCP server per Cursor
 │   └── rules/
 │       ├── vision-knowledge.mdc  # Regole per uso knowledge base
-│       └── vision-project.mdc    # Convenzioni progetto Vision
-├── .env                          # API key Google (NON committare)
+│       └── vision-project.mdc    # Convenzioni progetto Vision (stato corpus)
+├── .env                          # GOOGLE_API_KEY (non committare)
 ├── scripts/
-│   ├── 01_extract_pdf.py         # Estrazione PDF → Markdown
-│   ├── 02_chunk.py               # Chunking semantico con metadata
-│   └── 03_index.py               # Embedding + indicizzazione ChromaDB
+│   ├── 01_extract_pdf.py         # Estrazione PDF → Markdown (testo nativo)
+│   ├── 01_extract_pdf_ocr.py     # OCR per PDF scannerizzati (Tesseract)
+│   ├── 02_chunk.py               # Chunking con tiktoken (300–1200 token)
+│   ├── 03_index.py               # Embedding + ChromaDB (resume, --fresh)
+│   ├── chunk_quality_audit.py    # Audit qualità chunk (legacy)
+│   └── chunk_quality_audit_v2.py # Audit qualità RAG (usato per il report)
 ├── mcp_server/
-│   └── server.py                 # MCP server (3 tool per Cursor)
+│   └── server.py                 # MCP server (FastMCP, 3 tool)
 ├── docs/
-│   ├── raw/                      # Markdown estratti dai PDF (generato)
-│   ├── knowledge/                # Markdown puliti manualmente (futuro)
-│   └── chunks/
-│       └── all_chunks.json       # Chunk con metadata (generato)
-├── vector_store/                 # ChromaDB persistent storage (generato)
-├── requirements.txt              # Dipendenze Python
-├── to_do_list.md                 # Prossimi passi e miglioramenti
-└── README.md                     # Questo file
+│   ├── raw/                      # Markdown estratti (generato)
+│   ├── knowledge/                # Markdown puliti / strutturati (manuale, opzionale)
+│   ├── chunks/
+│   │   └── all_chunks.json       # Chunk con metadata (generato)
+│   ├── RAG_report.md             # Report RAG + audit (query, trend vs baseline)
+│   └── chunk_quality_baseline.json
+├── vector_store/                 # ChromaDB (generato, in genere gitignored)
+├── src/                          # Codice applicativo Vision (da sviluppare)
+├── requirements.txt
+├── Ideas.txt                     # Note e idee di prodotto
+└── README.md
 ```
 
 ---
@@ -50,17 +57,18 @@ Vision/
 ## Requisiti
 
 - **Python 3.11+**
-- **API key Google AI Studio** (per embedding gemini-embedding-2)
+- **API key Google AI Studio** (`GOOGLE_API_KEY`) per embedding `gemini-embedding-2` (stesso stack della pipeline e del MCP, se non usi fallback locale).
+- **Solo per OCR:** [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) installato sul sistema (su Windows, ad es. `winget install UB-Mannheim.TesseractOCR`). Vedi commenti in cima a `scripts/01_extract_pdf_ocr.py` per `TESSDATA_PREFIX` e DPI.
 
-### Dipendenze Python
+### Dipendenze Python (`requirements.txt`)
 
 ```
-pymupdf >= 1.24.0        # Estrazione testo da PDF
-chromadb >= 0.5.0         # Vector database locale
-google-genai >= 2.0.0     # Google AI embedding
-openai >= 1.30.0          # (opzionale, fallback embedding)
-mcp[cli] >= 1.0.0         # MCP server framework
-tiktoken >= 0.7.0         # Tokenizer per conteggio token
+pymupdf>=1.24.0        # Estrazione testo / rendering pagine per OCR
+chromadb>=0.5.0        # Vector database locale
+google-genai>=2.0.0  # Client Google per embedding
+openai>=1.30.0         # Opzionale / compatibilità
+mcp[cli]>=1.0.0        # Framework MCP server
+tiktoken>=0.7.0        # Conteggio token (cl100k_base)
 ```
 
 ---
@@ -81,186 +89,136 @@ Creare un file `.env` nella root del progetto:
 GOOGLE_API_KEY=la-tua-chiave-google-ai-studio
 ```
 
+Per sviluppo senza chiave Google, la pipeline di indicizzazione può usare embedding locali: impostare `USE_LOCAL=1` nell’ambiente prima di `03_index.py` (vedi docstring dello script). Il server MCP, se la chiave manca o è segnaposto, non userà gli stessi embedding di produzione: per ricerca coerente con l’indice Google serve la chiave configurata.
+
 ### 3. Eseguire la pipeline
 
 ```bash
-# Step 1: Estrai testo dai PDF
+# Step 1a: PDF con testo selezionabile
 python scripts/01_extract_pdf.py
 
-# Step 2: Chunking semantico
+# Step 1b (solo scansioni): OCR sui PDF predefiniti in MATERIALERAGVISION
+python scripts/01_extract_pdf_ocr.py
+
+# Step 2: Chunking
 python scripts/02_chunk.py
 
-# Step 3: Embedding e indicizzazione
+# Step 3: Embedding e indicizzazione (resume se la collection esiste già)
 python scripts/03_index.py
+
+# Re-indicizzazione completa da zero
+python scripts/03_index.py --fresh
 ```
 
 ### 4. Configurare Cursor
 
-Il file `.cursor/mcp.json` è già configurato. Dopo aver eseguito la pipeline:
+Il file `.cursor/mcp.json` punta al server in `mcp_server/server.py`. Dopo aver costruito `vector_store/`:
 
-1. Riavviare Cursor
-2. Il tool `search_vision_docs` apparirà tra gli MCP disponibili
-3. Le regole in `.cursor/rules/` guideranno l'agente nell'uso della knowledge base
+1. Riavviare Cursor se necessario.
+2. I tool MCP (`search_vision_docs`, `get_module_spec`, `list_sources`) compaiono tra le risorse configurate.
+3. Le regole in `.cursor/rules/` guidano l’agente sull’uso della knowledge base e sulle lacune note del corpus.
 
 ---
 
 ## Pipeline — Dettaglio tecnico
 
-### Step 1: Estrazione PDF (`01_extract_pdf.py`)
+### Step 1: Estrazione (`01_extract_pdf.py` / `01_extract_pdf_ocr.py`)
 
-- **Input:** PDF da `C:\Users\Gabri\Strategy&Indicators\MATERIALERAGVISION`
-- **Output:** file `.md` in `docs/raw/`, uno per PDF
-- **Libreria:** PyMuPDF (pymupdf)
-- **Formato output:** Markdown con frontmatter YAML (source_file, total_pages) e marcatori `<!-- PAGE N -->` per ogni pagina
-
-**Statistiche attuali:**
-- 35 PDF processati
-- 32 con testo estratto (14.9 milioni di caratteri)
-- 3 scansioni senza testo (Elliott Wave, Martin Pring, Options Volatility)
+- **Input PDF:** cartella `C:\Users\Gabri\Strategy&Indicators\MATERIALERAGVISION` (percorsi fissi negli script; adattare se serve portabilità).
+- **Output:** file `.md` in `docs/raw/`, con frontmatter YAML e marcatori `<!-- PAGE N -->` dove applicabile.
+- **OCR:** `01_extract_pdf_ocr.py` è pensato per i PDF senza layer di testo (Elliott Wave, Pring Momentum, Natenberg, ecc.); supporta DPI configurabile e modalità a doppia colonna per ridurre l’interleaving del testo.
 
 ### Step 2: Chunking (`02_chunk.py`)
 
-- **Input:** file `.md` da `docs/raw/`
+- **Input:** `docs/raw/*.md`
 - **Output:** `docs/chunks/all_chunks.json`
-- **Strategia:** chunking semantico per sezione/paragrafo
-- **Dimensione target:** 200–1200 token per chunk
-- **Overlap:** ~100 token (tramite split di sezioni grandi)
+- **Parametri principali:** `MIN_CHUNK_TOKENS=300`, `MAX_CHUNK_TOKENS=1200`, `OVERLAP_TOKENS=80`, tokenizer `cl100k_base`; split e merge **consapevoli della frase** (con conteggio token rigoroso sul testo unito).
+- **Metadata:** mappatura `BOOK_METADATA` per `source_type`, `categories` e regole speciali (es. scarto di primi chunk rumorosi su alcuni stem OCR).
 
-Ogni chunk porta metadata:
+Campi tipici per chunk:
+
 | Campo | Descrizione |
 |-------|-------------|
-| `id` | Identificatore unico (filename + indice) |
-| `source` | Nome del PDF originale |
-| `source_type` | `"theory"` (libri) o `"spec"` (documenti Vision) |
-| `categories` | Lista di tag tematici |
-| `page` / `page_end` | Pagina/e nel PDF originale |
-| `chunk_index` | Posizione nel documento |
-| `tokens` | Conteggio token del chunk |
-
-Il dizionario `BOOK_METADATA` nello script mappa i filename ai tag di categoria.
-
-**Statistiche attuali:**
-- 7857 chunk totali
-- 3.7 milioni di token
-- Media: 473 token/chunk
+| `id` | Identificatore univoco |
+| `source` | Nome file PDF di riferimento |
+| `source_type` | `"theory"` o `"spec"` |
+| `categories` | Tag tematici |
+| `page` / `page_end` | Pagina nel documento |
+| `chunk_index` | Ordine nel documento |
+| `tokens` | Token stimati |
 
 ### Step 3: Indicizzazione (`03_index.py`)
 
 - **Input:** `docs/chunks/all_chunks.json`
-- **Output:** `vector_store/` (ChromaDB persistent)
-- **Modello embedding:** Google `gemini-embedding-2` (3072 dimensioni)
-- **Batch size:** 20 chunk per richiesta API
-- **Distanza:** coseno
-- **Fallback:** se `GOOGLE_API_KEY` non è presente, usa ChromaDB default (all-MiniLM-L6-v2)
-- **Rate limiting:** retry automatico con pausa di 60s su errore 429
+- **Output:** `vector_store/` (persistente)
+- **Modello:** `gemini-embedding-2`; distanza coseno; batch 20; retry con backoff su errori transitori (rate limit, 5xx).
+- **Filtro:** chunk con `tokens < 120` non vengono indicizzati.
+- **Resume:** se la collection esiste, vengono aggiunti solo i chunk mancanti; `--fresh` ricrea l’indice da zero.
+
+---
+
+## Qualità RAG e audit
+
+- **`scripts/chunk_quality_audit_v2.py`** — analisi euristiche sui chunk (es. inizio/fine a metà frase).
+- **`docs/RAG_report.md`** — sintesi del comportamento del sistema e confronto con `docs/chunk_quality_baseline.json`.
+- Dopo cambiamenti massicci a `docs/raw/`, metadata o logica di chunking: rilanciare audit e aggiornare il report se mantieni una baseline tracciata.
 
 ---
 
 ## MCP Server — Tool disponibili
 
-Il server si trova in `mcp_server/server.py` e espone 3 tool:
+Server: `mcp_server/server.py` (FastMCP). Tre tool:
 
 ### `search_vision_docs(query, n_results?, source_type?, category?)`
 
-Ricerca semantica nella knowledge base. Tool principale.
-
-| Parametro | Tipo | Default | Descrizione |
-|-----------|------|---------|-------------|
-| `query` | string | (obbligatorio) | Cosa cercare |
-| `n_results` | int | 5 | Risultati da restituire (max 10) |
-| `source_type` | string | "" | Filtro: `"theory"` o `"spec"` |
-| `category` | string | "" | Filtro: `"formula"`, `"pattern"`, `"strategy"`, ecc. |
-
-**Esempio:** `search_vision_docs("Wyckoff Spring accumulation", source_type="theory")`
+Ricerca semantica. Parametri principali: `query` (obbligatorio), `n_results` (default 5, max 10), filtri opzionali `source_type` e `category`.
 
 ### `get_module_spec(source_name, max_chunks?)`
 
-Recupera tutti i chunk di un documento specifico, ordinati per pagina.
-
-| Parametro | Tipo | Default | Descrizione |
-|-----------|------|---------|-------------|
-| `source_name` | string | (obbligatorio) | Parte del nome file (es. "wyckoff", "murphy") |
-| `max_chunks` | int | 20 | Massimo chunk da restituire |
+Chunk di un documento, ordinati per pagina; `source_name` è una sottostringa del nome file.
 
 ### `list_sources()`
 
-Elenca tutte le fonti disponibili con conteggio chunk e categorie. Nessun parametro.
+Elenco fonti con conteggi e categorie — utile per avere lo stato aggiornato senza duplicare tabelle nel README.
 
 ---
 
-## Fonti indicizzate (32 documenti)
+## Fonti e corpus
 
-| Fonte | Chunk | Categorie |
-|-------|-------|-----------|
-| Wyckoff Methodology in Depth (x2) | 288 | pattern, strategy, methodology |
-| Wyckoff 2.0 Structures, Volume Profile | 216 | pattern, strategy, methodology |
-| Anna Coulling — Volume Price Analysis | 59 | volume, price_action |
-| De Prado — Advances in Financial ML | 158 | formula, machine_learning, quantitative |
-| Murphy — Technical Analysis of Financial Markets | 408 | technical_analysis |
-| Pring — Technical Analysis Explained | 673 | momentum, technical_analysis |
-| Ernest Chan — Algorithmic Trading + Quantitative Trading | 387 | algorithmic_trading, quantitative |
-| Aronson — Evidence-Based Technical Analysis | 510 | evidence_based, technical_analysis |
-| Adam Grimes — Art and Science of Technical Analysis | 443 | market_structure, price_action |
-| Dalton — Mind over Markets | 199 | market_profile, volume |
-| Profit with the Market Profile | 211 | market_profile, volume |
-| Trading Systems and Methods | 1566 | strategy, systematic |
-| Algorithmic and High-Frequency Trading | 342 | algorithmic_trading, hft |
-| Avellaneda & Stoikov — Limit Order Book | 14 | market_microstructure |
-| The Price Impact of Order Book Events | 40 | market_microstructure |
-| Trading Exchanges — Market Microstructure | 105 | market_microstructure |
-| Sinclair — Volatility Trading | 72 | volatility, options |
-| Machine Learning for Algorithmic Trading | 241 | machine_learning |
-| Reinforcement Learning (Sutton & Barto) | 535 | machine_learning |
-| N-BEATS Neural Expansion Analysis | 36 | machine_learning, time_series |
-| Temporal Fusion Transformers | 26 | machine_learning, time_series |
-| Portfolio Mathematics Handbook | 434 | portfolio, risk |
-| Active Portfolio Management | 31 | portfolio, risk |
-| Pedersen — Efficiently Inefficient | 63 | quantitative |
-| Flash Boys | 49 | market_microstructure |
-| Guide italiane (Analisi Tecnica + Trading) | 681 | technical_analysis, strategy |
-| SSRN-1695596 | 70 | — |
+Il corpus include manuali classici (Wyckoff, Murphy, Pring, microstructure, ML per il trading, opzioni, ecc.), paper (es. flow toxicity / VPIN su SSRN), guide in italiano e più titoli su algoritmic trading e HFT. **Elliott Wave, Pring on Momentum e Natenberg** provengono da scansioni con OCR: sono indicizzati ma il testo può contenere errori; conviene incrociare con altre fonti quando serve precisione assoluta.
 
-**Non indicizzati (scansioni, serve OCR):**
-- Elliott Wave Principle (Frost & Prechter)
-- Martin Pring — Market Momentum
-- Options, Volatility and Pricing (Sheldon Natenberg)
+Per elenco e conteggi aggiornati: tool MCP **`list_sources()`** oppure ispezione di `all_chunks.json`.
 
 ---
 
-## Risultati dei test
+## Risultati dei test (storici)
 
-Test eseguiti il 12/05/2026 con 7 query rappresentative:
-
-| Query | Relevance top-1 | Fonte trovata | Valutazione |
-|-------|-----------------|---------------|-------------|
-| Wyckoff accumulation Spring SOS LPS | 0.821 | Wyckoff Methodology in Depth | Eccellente |
-| Volume analysis institutional activity | 0.759 | Wyckoff + Wyckoff 2.0 | Buono |
-| Order book imbalance formula | 0.770 | Price Impact of Order Book Events | Buono |
-| VWAP calculation | 0.749 | Trading Systems and Methods | Buono |
-| Limit order book bid ask spread | 0.784 | Avellaneda & Stoikov | Buono |
-| ML for price prediction (filtro category) | — | Nessun risultato | Da correggere (metadata) |
+Nel README del 12/05/2026 erano documentate query manuali su ricerca semantica (Wyckoff, order book, VWAP, ecc.) con score di rilevanza. Per esiti aggiornati, query aggiuntive e metriche di audit, fare riferimento a **`docs/RAG_report.md`**.
 
 ---
 
 ## Come rilanciare la pipeline
 
-Dopo modifiche ai metadata, al chunking o aggiunta di nuovi PDF:
-
 ```bash
-# Solo re-chunk + re-index (se i PDF non cambiano)
+# Solo re-chunk + re-index (PDF invariati)
 python scripts/02_chunk.py
 python scripts/03_index.py
 
-# Pipeline completa (se aggiungi nuovi PDF)
+# Pipeline completa (nuovi PDF o re-estrazione)
 python scripts/01_extract_pdf.py
+python scripts/01_extract_pdf_ocr.py   # se servono scansioni
 python scripts/02_chunk.py
 python scripts/03_index.py
 ```
 
-Tempo stimato: ~10 minuti per la pipeline completa (di cui ~6 min per l'indicizzazione Google).
+Indice pulito da zero: `python scripts/03_index.py --fresh`.
+
+Tempo indicativo: dipende dal volume e dai limiti API; l’embedding Google è la fase più lenta.
 
 ---
 
 ## Prossimi passi
 
-Vedi `to_do_list.md` per la lista completa e prioritizzata.
+Note operative e idee: **`Ideas.txt`**. Convenzioni e stato del corpus (abbreviazioni, lacune tipo CVD non coperto dai libri, principi “theory before code”): **`.cursor/rules/vision-project.mdc`**.
+
+Non committare `.env`, chiavi API o blob di `vector_store/`; rigenerare l’indice dagli script quando si condivide il repo o si apre una PR.

@@ -1,0 +1,63 @@
+{
+  "description": "Snapshot ultimo report audit completo (v2) per confronto trend qualità chunk/RAG.",
+  "reference_audit": "chunk_quality_report.md v2 — 2026-05-13",
+  "corpus": {
+    "total_chunks": 7857,
+    "sources_count": 35,
+    "token_median": 436,
+    "token_mean": 473.5,
+    "token_min": 28,
+    "token_max": 1195,
+    "token_p10": 249,
+    "token_p90": 736,
+    "token_stdev": 191.2,
+    "pct_in_range_200_1200": 99.7,
+    "too_short_under_200": 20,
+    "ends_mid_sentence_count": 3517,
+    "starts_mid_sentence_count": 1274,
+    "ends_mid_sentence_pct": 44.8,
+    "starts_mid_sentence_pct": 16.2
+  },
+  "rag_core_30": {
+    "queries": 30,
+    "found": 30,
+    "complete": 29
+  },
+  "intermediate_snapshot_9166": {
+    "note": "Post-OCR Elliott/Pring/Natenberg + drop 3 chunk Pring; chunking invariato. Conteggi taglio non salvati in report separato.",
+    "total_chunks": 9166,
+    "sources_count": 35
+  },
+  "last_audit_snapshot": {
+    "note": "Audit live RAG 2026-05-14; non sostituisce `corpus` (baseline v2).",
+    "report": "docs/RAG_report.md",
+    "audit_date": "2026-05-14",
+    "vision_rag_score_composite": 94.3,
+    "rag_core_found": 30,
+    "rag_core_complete": 30,
+    "rag_complex_found": 15,
+    "rag_complex_complete": 13,
+    "total_chunks": 9336,
+    "sources_count": 36,
+    "ends_mid_sentence_count": 688,
+    "ends_mid_sentence_pct": 7.37,
+    "starts_mid_sentence_count": 1636,
+    "starts_mid_sentence_pct": 17.5,
+    "token_median": 462,
+    "token_mean": 478.0,
+    "pct_in_range_200_1200": 92.9
+  },
+  "chunking_sentence_boundary_2026_05_14": {
+    "note": "Dopo `02_chunk.py` sentence-aware + MIN=300; rilanciare chunk_quality_audit per RAG live.",
+    "total_chunks": 9336,
+    "sources_count": 36,
+    "ends_mid_sentence_count": 688,
+    "ends_mid_sentence_pct": 7.37,
+    "starts_mid_sentence_count": 1636,
+    "starts_mid_sentence_pct": 17.52,
+    "token_median": 462,
+    "token_mean": 478,
+    "chunks_over_1200_tokens": 0,
+    "chunks_under_200_tokens": 659
+  }
+}

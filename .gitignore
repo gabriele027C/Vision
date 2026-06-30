@@ -2,3 +2,10 @@
 
 # ChromaDB generated local storage (rigenerabile con gli script di indexing)
 vector_store/
+
+# Vision TVS app (generati a runtime)
+src/backend/vision_app.db
+src/backend/cache/
+src/frontend/node_modules/
+src/frontend/dist/
+__pycache__/

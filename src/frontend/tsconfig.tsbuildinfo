@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/api.ts","./src/main.tsx","./src/types.ts","./src/components/dashboard.tsx","./src/components/diagnosticspanel.tsx","./src/components/journal.tsx","./src/components/planner.tsx","./src/components/regimecard.tsx","./src/components/settingspage.tsx","./src/components/watchtable.tsx","./src/components/watchlist.tsx"],"version":"5.9.3"}

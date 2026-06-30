@@ -1,10 +1,16 @@
 """
 Step 1: Extract text from PDFs into clean Markdown files.
 Reads all PDFs from the source folder and writes .md files to docs/raw/
+
+For scanned PDFs (no selectable text), use scripts/01_extract_pdf_ocr.py instead
+(Tesseract + PyMuPDF full-page OCR).
+
+Single-file extraction (avoids re-processing every PDF in SOURCE_DIR):
+  python scripts/01_extract_pdf.py "C:\\path\\to\\Book (2nd Edition).pdf"
 """
 
+import argparse
 import sys
-import os
 from pathlib import Path
 
 import pymupdf
@@ -60,16 +66,37 @@ def extract_pdf(pdf_path: Path, output_dir: Path) -> dict:
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Extract PDF text to docs/raw/ Markdown.")
+    parser.add_argument(
+        "pdfs",
+        nargs="*",
+        type=Path,
+        help="Optional PDF file path(s). If omitted, all *.pdf in SOURCE_DIR are processed.",
+    )
+    args = parser.parse_args()
+
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    pdfs_lower = sorted(SOURCE_DIR.glob("*.pdf"))
-    pdfs_upper = [p for p in sorted(SOURCE_DIR.glob("*.PDF")) if p not in pdfs_lower]
-    pdfs = pdfs_lower + pdfs_upper
-    if not pdfs:
-        print(f"No PDFs found in {SOURCE_DIR}")
-        sys.exit(1)
+    if args.pdfs:
+        pdfs = []
+        for p in args.pdfs:
+            p = p.expanduser().resolve()
+            if not p.is_file():
+                print(f"ERROR: file not found: {p}", file=sys.stderr)
+                sys.exit(1)
+            if p.suffix.lower() != ".pdf":
+                print(f"ERROR: not a PDF: {p}", file=sys.stderr)
+                sys.exit(1)
+            pdfs.append(p)
+    else:
+        pdfs_lower = sorted(SOURCE_DIR.glob("*.pdf"))
+        pdfs_upper = [p for p in sorted(SOURCE_DIR.glob("*.PDF")) if p not in pdfs_lower]
+        pdfs = pdfs_lower + pdfs_upper
+        if not pdfs:
+            print(f"No PDFs found in {SOURCE_DIR}")
+            sys.exit(1)
 
-    print(f"Found {len(pdfs)} PDFs in {SOURCE_DIR}\n")
+    print(f"Extracting {len(pdfs)} PDF(s)\n")
 
     results = []
     for i, pdf_path in enumerate(pdfs, 1):

@@ -1,0 +1,192 @@
+//@version=5
+// Vision TVS — Checklist pre-trade §12 + Legenda per principianti
+// Uso: Pine Editor → incolla → "Aggiungi al grafico" (timeframe Daily consigliato).
+indicator("Vision TVS — Checklist §12 + Legenda", "TVS Checklist", overlay=true)
+
+// ───────────────────────── IMPOSTAZIONI ─────────────────────────
+dirLong   = input.string("Long", "Direzione (Long = scommetto che sale)", options=["Long", "Short"]) == "Long"
+capital   = input.float(4000.0, "Capitale del conto (€/$)", minval=1)
+riskPct   = input.float(1.0, "Rischio per trade (%)", minval=0.1, maxval=2.0, step=0.1)
+halfRisk  = input.bool(false, "Regime misto: dimezza il rischio")
+inEntry   = input.float(0.0, "Entrata manuale (0 = calcolata dallo script)")
+inStop    = input.float(0.0, "Stop manuale (0 = calcolato dallo script)")
+showLn    = input.bool(true, "Mostra linee entrata/stop/target")
+showLeg   = input.bool(true, "Mostra legenda (in basso a sinistra)")
+colorBars = input.bool(true, "Colora le candele secondo il setup")
+
+isCrypto = syminfo.type == "crypto"
+benchSym = isCrypto ? "BINANCE:BTCUSDT" : "AMEX:SPY"
+
+// ───────────────────── DATI DAILY DELL'ASSET ─────────────────────
+f_asset() =>
+    e20  = ta.ema(close, 20)
+    e50  = ta.ema(close, 50)
+    e200 = ta.ema(close, 200)
+    e50Up = e50 > e50[5]
+    rsiV = ta.rsi(close, 14)
+    atrV = ta.atr(14)
+    basis = ta.sma(close, 20)
+    bbw = (4.0 * ta.stdev(close, 20)) / basis
+    squeeze = bbw <= ta.percentile_nearest_rank(bbw, 60, 10)
+    volDecl = ta.sma(volume, 5) < ta.sma(volume, 20)
+    smaVol = ta.sma(volume, 20)
+    rvolV = volume / smaVol[1]
+    hi2 = math.max(high, high[1])
+    lo2 = math.min(low, low[1])
+    swLo = ta.lowest(low, 10)
+    swHi = ta.highest(high, 10)
+    rngHi = ta.highest(high, 15)
+    rngLo = ta.lowest(low, 15)
+    r20 = close / close[20] - 1
+    r60 = close / close[60] - 1
+    [close, e20, e50, e50Up, e200, rsiV, atrV, squeeze, volDecl, rvolV, hi2, lo2, swLo, swHi, rngHi, rngLo, r20, r60]
+
+[dC, dE20, dE50, dE50Up, dE200, dRsi, dAtr, dSqz, dVolDecl, dRvol, dHi2, dLo2, dSwLo, dSwHi, dRngHi, dRngLo, aR20, aR60] = request.security(syminfo.tickerid, "D", f_asset())
+
+// ───────────────────── BENCHMARK (SPY o BTC) + VIX ─────────────────────
+f_bench() =>
+    e50  = ta.ema(close, 50)
+    e200 = ta.ema(close, 200)
+    slopeUp = e50 > e50[5]
+    r20 = close / close[20] - 1
+    r60 = close / close[60] - 1
+    [close, e50, e200, slopeUp, r20, r60]
+
+[bC, bE50, bE200, bSlopeUp, bR20, bR60] = request.security(benchSym, "D", f_bench())
+vix = request.security("TVC:VIX", "D", close)
+
+// ───────────────────── CONFERMA SUL 4 ORE ─────────────────────
+f_4h() =>
+    volOk = volume > ta.sma(volume, 20)
+    [close, volOk]
+[h4C, h4VolOk] = request.security(syminfo.tickerid, "240", f_4h())
+
+// ───────────────────── CONTROLLI DELLA CHECKLIST §12 ─────────────────────
+// 1. Il "mare" è a favore? (regime del mercato generale)
+regimeOk = isCrypto ?
+     (dirLong ? bC > bE200 and bC > bE50 : bC < bE200 and bC < bE50) :
+     (dirLong ? bC > bE200 and bSlopeUp : bC < bE200 and not bSlopeUp)
+
+// 2. Niente panico generale (VIX < 30, solo azioni)
+vixOk = isCrypto or vix < 30
+
+// 3. L'asset è più forte (o più debole) del mercato? (proxy della forza relativa)
+rsOk = dirLong ? (aR20 > bR20 and aR60 > bR60) : (aR20 < bR20 and aR60 < bR60)
+
+// 4. Setup A — "ricarica nel trend" (pullback)
+alignedA = dirLong ? (dE20 > dE50 and dE50 > dE200 and dE50Up) : (dE20 < dE50 and dE50 < dE200 and not dE50Up)
+inZoneA  = dirLong ? (dC >= dE50 - 0.5 * dAtr and dC <= dE20 + 0.25 * dAtr) : (dC <= dE50 + 0.5 * dAtr and dC >= dE20 - 0.25 * dAtr)
+rsiOkA   = dirLong ? dRsi > 40 : dRsi < 60
+setupA   = alignedA and inZoneA and rsiOkA and dVolDecl
+
+// 5. Setup B — "molla compressa" (squeeze di volatilità)
+ctxB   = dirLong ? dC > dE200 : dC < dE200
+setupB = dSqz and ctxB and not setupA
+
+autoEntry = setupA ? (dirLong ? dHi2 : dLo2) : (dirLong ? dRngHi : dRngLo)
+autoStop  = setupA ?
+     (dirLong ? dSwLo - 0.5 * dAtr : dSwHi + 0.5 * dAtr) :
+     (dirLong ? math.max(dRngHi - dAtr, dRngLo) : math.min(dRngLo + dAtr, dRngHi))
+entryPx = inEntry > 0 ? inEntry : autoEntry
+stopPx  = inStop  > 0 ? inStop  : autoStop
+
+setupOk = setupA or setupB
+volOk   = setupA ? dVolDecl : dRvol >= 2.0
+
+// 6. Il prezzo ha davvero rotto il livello, con volume? (conferma 4H)
+trig4h = dirLong ? (h4C > entryPx and h4VolOk) : (h4C < entryPx and h4VolOk)
+
+// 7. Lo stop non è troppo lontano (≤ 2.5 ATR)
+dist    = math.abs(entryPx - stopPx)
+distOk  = dist > 0 and dist <= 2.5 * dAtr
+
+// 8. Niente trimestrale nelle prossime 48h (solo azioni)
+daysToEarn = na(earnings.future_time) ? na : (earnings.future_time - timenow) / 86400000.0
+earnOk = isCrypto or na(daysToEarn) or daysToEarn > 2
+
+// Avviso weekend (crypto)
+dow = dayofweek(timenow, "UTC")
+weekendWarn = isCrypto and (dow == dayofweek.saturday or dow == dayofweek.sunday)
+
+// Quanto comprare (sizing §7)
+riskAmt = capital * riskPct / 100.0 * (halfRisk ? 0.5 : 1.0)
+qty = dist > 0 ? riskAmt / dist : na
+tgt2R = dirLong ? entryPx + 2 * dist : entryPx - 2 * dist
+allAuto = regimeOk and vixOk and rsOk and setupOk and volOk and trig4h and distOk and earnOk
+
+// ───────────────────── COLORE DELLE CANDELE ─────────────────────
+// Lime  = trigger scattato con volume → momento di ingresso secondo la strategia
+// Azzurro = zona di "ricarica" (Setup A in costruzione: ASPETTA il trigger)
+// Arancione = "molla compressa" (Setup B in costruzione: ASPETTA la rottura)
+candTrig = setupOk and trig4h
+candA    = setupA and not candTrig
+candB    = setupB and not candTrig
+barcolor(colorBars ? (candTrig ? color.lime : candA ? color.new(color.aqua, 0) : candB ? color.orange : na) : na, title="Colore candele setup")
+
+// ───────────────────── TABELLA CHECKLIST (in alto a destra) ─────────────────────
+var table tb = table.new(position.top_right, 2, 16, border_width=1, border_color=color.new(color.gray, 70))
+cOk  = color.new(color.green, 78)
+cNo  = color.new(color.red, 75)
+cMan = color.new(color.orange, 75)
+cHd  = color.new(#1a2234, 20)
+
+f_row(int r, string txt, bool pass) =>
+    table.cell(tb, 0, r, txt, text_color=color.white, text_size=size.small, bgcolor=pass ? cOk : cNo, text_halign=text.align_left)
+    table.cell(tb, 1, r, pass ? "✔" : "✘", text_color=color.white, text_size=size.small, bgcolor=pass ? cOk : cNo)
+
+f_man(int r, string txt) =>
+    table.cell(tb, 0, r, txt, text_color=color.white, text_size=size.small, bgcolor=cMan, text_halign=text.align_left)
+    table.cell(tb, 1, r, "TU", text_color=color.white, text_size=size.small, bgcolor=cMan)
+
+if barstate.islast
+    table.cell(tb, 0, 0, "CHECKLIST " + (dirLong ? "LONG (compro)" : "SHORT (vendo)") + " — " + syminfo.ticker, text_color=color.white, bgcolor=cHd, text_size=size.small, text_halign=text.align_left)
+    table.cell(tb, 1, 0, allAuto ? "OK" : "NO", text_color=color.white, bgcolor=allAuto ? color.new(color.green, 40) : color.new(color.red, 40), text_size=size.small)
+    f_row(1, "1. Il mercato generale (" + (isCrypto ? "BTC" : "SPY") + ") va nella mia direzione", regimeOk)
+    f_row(2, "2. Niente panico: VIX sotto 30" + (isCrypto ? " (non serve per crypto)" : " → ora " + str.tostring(vix, "#.#")), vixOk)
+    f_row(3, "3. Questo asset batte il mercato (forza relativa)", rsOk)
+    f_row(4, "4. C'è un setup valido: " + (setupA ? "A (ricarica nel trend)" : setupB ? "B (molla compressa)" : "NESSUNO"), setupOk)
+    f_row(5, "5. Il volume conferma" + (setupA ? " (in calo nella pausa)" : " (RVOL " + str.tostring(dRvol, "#.##") + ", serve ≥ 2)"), volOk)
+    f_row(6, "6. Rottura del livello confermata sul 4 ore", trig4h)
+    f_row(7, "7. Lo stop non è troppo lontano (" + str.tostring(dist / dAtr, "#.##") + " ATR, max 2.5)", distOk)
+    f_row(8, "8. Nessuna trimestrale entro 48h" + (na(daysToEarn) or isCrypto ? "" : " (tra " + str.tostring(daysToEarn, "#.#") + " giorni)"), earnOk)
+    f_man(9,  "9. Somma dei rischi aperti ≤ 4% (controlla il journal)")
+    f_man(10, "10. Funding non estremo (solo crypto, vedi app)")
+    f_man(11, "11. Ordine di STOP inserito insieme all'entrata")
+    if weekendWarn
+        table.cell(tb, 0, 12, "ATTENZIONE: è weekend, niente nuove entrate crypto", text_color=color.white, bgcolor=color.new(color.red, 40), text_size=size.small, text_halign=text.align_left)
+        table.cell(tb, 1, 12, "✘", text_color=color.white, bgcolor=color.new(color.red, 40), text_size=size.small)
+    table.cell(tb, 0, 13, "Entra a " + str.tostring(entryPx, format.mintick) + " · Stop a " + str.tostring(stopPx, format.mintick), text_color=color.white, bgcolor=cHd, text_size=size.small, text_halign=text.align_left)
+    table.cell(tb, 1, 13, "", bgcolor=cHd)
+    table.cell(tb, 0, 14, "Quantità " + str.tostring(qty, "#.####") + " · Rischi " + str.tostring(riskAmt, "#.##") + " · Incassa metà a " + str.tostring(tgt2R, format.mintick), text_color=color.white, bgcolor=cHd, text_size=size.small, text_halign=text.align_left)
+    table.cell(tb, 1, 14, "", bgcolor=cHd)
+
+// ───────────────────── LEGENDA (in basso a sinistra) ─────────────────────
+var table lg = table.new(position.bottom_left, 2, 12, border_width=1, border_color=color.new(color.gray, 70))
+cLeg = color.new(#121826, 15)
+
+f_leg(int r, color swatch, string txt) =>
+    table.cell(lg, 0, r, "██", text_color=swatch, text_size=size.small, bgcolor=cLeg)
+    table.cell(lg, 1, r, txt, text_color=color.white, text_size=size.small, bgcolor=cLeg, text_halign=text.align_left)
+
+if barstate.islast and showLeg
+    table.cell(lg, 0, 0, "LEGENDA", text_color=color.white, bgcolor=cHd, text_size=size.small)
+    table.cell(lg, 1, 0, "cosa significa ogni colore", text_color=color.new(color.white, 30), bgcolor=cHd, text_size=size.small, text_halign=text.align_left)
+    f_leg(1, color.blue,   "Linea BLU = prezzo di ENTRATA: si compra/vende solo se il prezzo la supera")
+    f_leg(2, color.red,    "Linea ROSSA = STOP LOSS: se il prezzo arriva qui, esco in perdita controllata")
+    f_leg(3, color.green,  "Linea VERDE = TARGET 2R: qui incasso metà del profitto e proteggo il resto")
+    f_leg(4, color.yellow, "Curva GIALLA = media 20 giorni: il 'ritmo' veloce del trend")
+    f_leg(5, color.orange, "Curva ARANCIO = media 50 giorni: la zona dove il prezzo 'si ricarica'")
+    f_leg(6, color.purple, "Curva VIOLA = media 200 giorni: sopra = mercato sano, sotto = debole")
+    f_leg(7, color.aqua,   "Candela AZZURRA = pausa di ricarica nel trend (Setup A): ASPETTA il trigger")
+    f_leg(8, color.orange, "Candela ARANCIO = mercato compresso come una molla (Setup B): ASPETTA la rottura")
+    f_leg(9, color.lime,   "Candela LIME = rottura confermata con volume: ORA la strategia consente l'ingresso")
+    table.cell(lg, 0, 10, "ℹ", text_color=color.white, text_size=size.small, bgcolor=cLeg)
+    table.cell(lg, 1, 10, "Tabella in alto: VERDE = regola ok, ROSSO = regola violata, ARANCIO 'TU' = controlla tu. Si entra SOLO se è tutto verde + i 3 controlli manuali.", text_color=color.white, text_size=size.small, bgcolor=cLeg, text_halign=text.align_left)
+
+// ───────────────────── LINEE SUL GRAFICO ─────────────────────
+plot(showLn ? entryPx : na, "Entrata (blu)", color.new(color.blue, 0), 2, plot.style_linebr)
+plot(showLn ? stopPx : na, "Stop loss (rossa)", color.new(color.red, 0), 2, plot.style_linebr)
+plot(showLn ? tgt2R : na, "Target 2R (verde)", color.new(color.green, 0), 2, plot.style_linebr)
+plot(dE20, "Media 20 giorni (gialla)", color.new(color.yellow, 40))
+plot(dE50, "Media 50 giorni (arancio)", color.new(color.orange, 40))
+plot(dE200, "Media 200 giorni (viola)", color.new(color.purple, 40))

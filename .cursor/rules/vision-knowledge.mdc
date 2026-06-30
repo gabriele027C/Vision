@@ -5,40 +5,106 @@ globs: ["**/*"]
 
 # Vision Knowledge Base
 
-This project has a knowledge base of trading/finance manuals and project specifications,
+This project has a knowledge base of 36 trading/finance books and papers (**~9,336 chunks**),
 accessible via the `vision-knowledge` MCP server.
 
 ## Available Tools
 
-- `search_vision_docs(query, source_type?, category?)` — semantic search across all manuals
-- `get_module_spec(source_name)` — get all content from a specific book/document
-- `list_sources()` — discover available sources and categories
+- `search_vision_docs(query, source_type?, category?)` — semantic search across all sources
+- `get_module_spec(source_name)` — retrieve all chunks from a specific book/document
+- `list_sources()` — list all indexed sources with chunk counts and categories
 
 ## When to Use
 
-- **Before implementing any formula or metric** (RVOL, OBI, CVD, Delta, VWAP, etc.):
-  call `search_vision_docs` with category="formula" to get the exact definition.
-- **Before implementing any pattern recognition** (Wyckoff phases, Elliott waves, etc.):
-  call `search_vision_docs` with category="pattern" to get the theory.
-- **Before creating a new module or file**: call `list_sources` then `search_vision_docs`
-  to check if there's relevant theory or specification.
-- **When unsure about a trading concept**: always search first, never guess.
+- **Before implementing any formula or metric** (RVOL, VWAP, Delta, OBI, VPIN, etc.):
+  call `search_vision_docs` with `category="formula"` to get the exact definition.
+- **Before implementing any pattern recognition** (Wyckoff phases, Elliott waves, Market Profile, etc.):
+  call `search_vision_docs` with `category="pattern"` or `category="methodology"`.
+- **Before any market microstructure or order flow logic** (LOB, bid-ask, price impact):
+  call `search_vision_docs` with `category="market_microstructure"`.
+- **Before any ML/quant model** (mean reversion, cointegration, Kelly, triple barrier):
+  call `search_vision_docs` with `category="quantitative"` or `category="machine_learning"`.
+- **Before creating a new module or file**: call `list_sources` then `search_vision_docs`.
+- **When unsure about any trading concept**: always search first, never guess or invent.
 
 ## Source Types
 
-- `source_type: "theory"` — Books (Wyckoff, Coulling, De Prado, Murphy, Pring, Chan, etc.)
-- `source_type: "spec"` — Vision project specifications and architecture documents
+- `source_type: "theory"` — Books and papers (all 36 sources)
+- `source_type: "spec"` — Vision project specifications (when available)
 
-## Categories
+## Categories (verified, post-audit 2026-05-13)
 
-formula, pattern, strategy, methodology, volume, price_action, machine_learning,
-quantitative, technical_analysis, market_microstructure, order_book, volatility,
-momentum, architecture, implementation
+| Category | Domain |
+|----------|--------|
+| `pattern` | Wyckoff events, Elliott waves |
+| `methodology` | Wyckoff schematics, full frameworks |
+| `strategy` | Trading strategies, systems |
+| `systematic` | Systematic/algorithmic trading |
+| `technical_analysis` | TA indicators, charts |
+| `momentum` | Momentum oscillators, RSI, MACD |
+| `volume` | Volume analysis, OBV, VWAP, Volume Profile |
+| `price_action` | Price action, VSA |
+| `market_profile` | TPO, Value Area, POC, Initial Balance |
+| `market_microstructure` | LOB, bid-ask, HFT, price impact |
+| `order_book` | Limit order book mechanics |
+| `hft` | High-frequency trading |
+| `flow_toxicity` | VPIN, toxic order flow, flash crash |
+| `volatility` | Realized/implied volatility |
+| `options` | Options pricing, Greeks |
+| `formula` | Mathematical formulas and derivations |
+| `quantitative` | Quant strategies, statistical testing |
+| `algorithmic_trading` | Algo trading frameworks |
+| `machine_learning` | ML models for trading |
+| `reinforcement_learning` | RL for trading |
+| `time_series` | Time series forecasting |
+| `portfolio` | Portfolio construction |
+| `risk` | Risk management, sizing |
+| `evidence_based` | Statistical validation of TA |
+| `market_structure` | Market structure, price action |
+
+## Key Sources Indexed
+
+| Topic | Primary Source |
+|-------|----------------|
+| Wyckoff methodology | Villahermosa (2 books), Wyckoff 2.0 |
+| Market Profile / TPO | Dalton "Mind over Markets", Keppler "Profit with Market Profile" |
+| Volume/Price analysis | Anna Coulling |
+| Technical Analysis | Murphy, Pring, Grimes, Aronson |
+| Algorithmic/Quant | Ernest Chan (2 books), De Prado (2 books) |
+| Market Microstructure | Harris "Trading & Exchanges", Avellaneda-Stoikov LOB |
+| HFT & Algo | Cartea/Jaimungal "Algo & HFT" |
+| Flow Toxicity / VPIN | Easley et al. "Flow Toxicity in HF World" |
+| Volatility / Options | Sinclair, Natenberg (OCR da scan; qualità formule da verificare) |
+| Elliott Wave | Frost & Prechter (OCR da scan) |
+| Portfolio / Sizing | Vince "Handbook of Portfolio Mathematics", Grinold & Kahn |
+| ML for Trading | Lopez de Prado (AFML), Stefan Jansen — *Machine Learning for Algorithmic Trading* 2nd ed. (PDF, testo nativo) + Packt (`Master_As_A_Pro_Applied`) |
+
+⚠️ **CVD (Cumulative Volume Delta)** is NOT in the knowledge base — no source covers it explicitly.
+Use `search_vision_docs("delta order flow bid ask volume")` as the closest approximation.
+
+## OCR scan sources — RAG query practice
+
+**Elliott (Frost & Prechter), Pring on Market Momentum, Natenberg (Options):** Tesseract OCR + dual-column (Natenberg). Prefer **specific** queries over one-word searches: e.g. *“Elliott zigzag rules subdivisions wave A”*, *“momentum oscillator divergence weekly new highs Pring”*, *“Black-Scholes European assumptions Natenberg”*.
+
+**Natenberg + Sinclair:** For **implied volatility**, **volatility trading**, **skew**, and conceptual Greeks, run `search_vision_docs` on **Natenberg** *and* **Sinclair** (`Volatility Trading sinclair`) and reconcile; Sinclair is non-OCR and clearer for prose — use Natenberg for options-structure detail only when the passage is readable.
+
+**Natenberg formulas / tables:** Do not implement code from OCR table fragments. If the hit is mostly symbols or gibberish, **drop that hit** and search Sinclair + `category="formula"` or ask the user for a vector PDF / layout pass (Marker, Docling, cloud OCR).
+
+**Martin Pring on Market Momentum:** The first three merged chunks (cover + garbled TOC) are **removed at chunk time** (`02_chunk.py`) — they are not in the vector store.
 
 ## Rules
 
-1. Never invent formulas or metric parameters — always verify with search_vision_docs.
-2. Always cite the source: [BookName — page X].
-3. When theory and spec disagree, ask the user which to follow.
-4. For Wyckoff patterns (PS, SC, AR, ST, Spring, SOS, LPS): always search for the
-   full definition before implementing recognition logic.
+1. **Verify, then implement.** Never invent formulas, thresholds, or window lengths. If the KB is silent after a reasonable search, say so and ask the user or propose adding a source — do not fill in from general memory.
+2. **Cite what you used.** When answering from retrieval, cite `[BookName — page X]`; if metadata has `page_end` and it differs, use `pages X–Y`.
+3. **Query like a human, then narrow.** Prefer full-sentence queries (“What is X and how is it used?”). If results are noisy, add discriminating terms (author, acronym expansion, “Wyckoff”, “Market Profile”). For **short tickers** (RVOL, VPIN, SOS), include the expansion in the query to reduce mismatch.
+4. **Category filters are hints.** If `category="formula"` (or another tag) returns nothing useful, **retry without** `category` or try a sibling tag (`quantitative`, `volatility`). Tags come from filename rules; a few chunks may be best found with an unfiltered search.
+5. **Depth vs breadth.** Use `search_vision_docs` for cross-book answers; use `get_module_spec(source_name)` when one book should own the definition (e.g. full Wyckoff schematic in Villahermosa, full MP definitions in Dalton/Keppler).
+6. **Beware boundaries.** Snippets may start or end mid-sentence. Do not treat the cut as the author’s intended full stop — qualify with “per this passage” or fetch neighboring context via another query or `get_module_spec`.
+7. **Wyckoff** (PS, SC, AR, ST, Spring, SOS, LPS, UTAD, LPSY, SOW, etc.): start with `category="methodology"`; add methodology book name in the query if results mix unrelated “strength”/“support” hits.
+8. **Market Profile** (POC, VAH, VAL, IB, TPO): prefer `category="market_profile"`.
+9. **Sizing and risk** (Kelly, optimal f, drawdown): prefer `category="formula"` and portfolio math sources (Vince, Grinold & Kahn).
+10. **Theory vs product spec.** If a future Vision `spec` contradicts a book, **ask the user** which wins; never silently override the KB with product opinion.
+11. **OCR-sourced books** (Elliott, Pring on Momentum, Natenberg): text is from Tesseract OCR — layout and formulas may be imperfect. Cross-check volatility/options **concepts** with **Sinclair** when both apply; treat **Natenberg OCR tables** as non-authoritative for numeric code until a layout-aware extract or native PDF exists.
+12. **`source_type` when it matters.** Use `source_type="theory"` (default) for markets, indicators, and risk. When Vision adds indexed specs, use `source_type="spec"` for architecture and product behavior so answers do not drift into unrelated books.
+13. **Tables and multi-line formulas.** If a hit looks like the middle of a table or a broken equation, treat it as a boundary artifact: refine the query, increase `n_results`, or use `get_module_spec` on that PDF — do not stitch missing rows or symbols from memory.
+14. **Resolve ambiguous sources.** Call `list_sources()` to match the exact `source` string (filename) before a long `get_module_spec` pull when several books cover the same topic.
