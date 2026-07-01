@@ -15,6 +15,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.vision.tvs",
       "adaptiveIcon": {
         "backgroundColor": "#0b0f17",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -29,6 +30,12 @@
       "expo-sqlite",
       "expo-asset",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "7e0ef698-b48b-4ed9-aba6-72bfa5d48b39"
+      }
+    },
+    "owner": "gabriele027coopernika.com"
   }
 }

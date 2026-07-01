@@ -1,0 +1,101 @@
+Vision — Dual License
+=====================
+
+Copyright (c) 2025-2026 Gabriele. All Rights Reserved.
+
+This license applies to the entire Vision monorepo, including but not limited to:
+the RAG/knowledge-base pipeline, `src/backend`, `src/frontend`, `vision-mobile`,
+scripts, documentation, and configuration files authored as part of this project
+(collectively, the "Software").
+
+Third-party libraries and dependencies remain under their respective licenses
+(see Section 4). The Expo mobile scaffold in `vision-mobile/` also retains
+the original MIT license in `vision-mobile/LICENSE-MIT`.
+
+
+1. PERSONAL AND NON-COMMERCIAL USE LICENSE
+------------------------------------------
+
+Permission is granted, free of charge, to any individual ("Licensee") to use,
+study, and run the Software for **personal, non-commercial purposes only**,
+subject to the following conditions:
+
+  (a) **Permitted uses** include personal learning, private research, and
+      managing your own personal trading journal or watchlists, provided no
+      monetary compensation or commercial benefit is derived from the Software
+      or its output.
+
+  (b) **Prohibited without a Commercial License** (Section 2): any use in a
+      business, company, or professional context; offering the Software (or
+      access to it) to third parties for a fee or as part of a paid service;
+      SaaS, hosted, or multi-tenant deployments; redistribution, sublicensing,
+      or publication of source or binaries; incorporation into a product sold
+      to customers; use by employees or contractors on behalf of an organisation
+      that generates revenue.
+
+  (c) The above copyright notice and this license text must be retained in all
+      copies or substantial portions of the Software.
+
+  (d) The Software is provided "AS IS", without warranty of any kind. See
+      Section 5.
+
+
+2. COMMERCIAL USE LICENSE
+---------------------------
+
+Any use of the Software **outside** the scope of Section 1 requires a separate
+**written Commercial License** from the copyright holder.
+
+Commercial use includes, without limitation:
+
+  - Internal use by companies, funds, prop firms, or financial advisors
+  - Selling, licensing, or sublicensing the Software or derivative works
+  - White-label, OEM, or embedded distribution
+  - Providing the Software as a service (hosted or on-premise) to clients
+  - Consulting or training deliverables that include substantial portions of
+    the Software's source code
+
+To obtain a Commercial License, contact:
+
+  Email: gabriele02744@gmail.com
+  Subject: Vision — Commercial License Request
+
+Commercial terms (fees, scope, support, updates) are negotiated individually.
+No commercial rights are granted until a signed agreement is in place.
+
+
+3. OWNERSHIP
+------------
+
+The copyright holder retains all rights not expressly granted in this license.
+No trademark rights are granted for the names "Vision", "Vision TVS", or
+related branding.
+
+
+4. THIRD-PARTY COMPONENTS
+---------------------------
+
+This project depends on open-source packages (e.g. Python, React, Expo,
+React Native, FastAPI, ChromaDB, and others). Those components are governed
+by their own licenses and are not covered by this dual license. A list of
+dependencies is available in `requirements.txt`, `package.json`, and
+`package-lock.json`.
+
+
+5. DISCLAIMER
+-------------
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. THE SOFTWARE IS NOT
+FINANCIAL ADVICE. TRADING INVOLVES SUBSTANTIAL RISK OF LOSS. IN NO EVENT
+SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY ARISING FROM THE USE OF THE SOFTWARE.
+
+
+6. GOVERNING LAW
+----------------
+
+This license is governed by the laws of Italy. Any disputes shall be subject
+to the exclusive jurisdiction of the competent courts in Italy, unless
+mandatory law provides otherwise.

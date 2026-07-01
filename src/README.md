@@ -1,5 +1,11 @@
 # Vision TVS — App web per la strategia swing
 
+## Licenza
+
+Copyright © 2025-2026 Gabriele. Uso personale/non commerciale secondo [`../LICENSE`](../LICENSE); uso commerciale solo con licenza scritta. MIT Expo: [`../vision-mobile/LICENSE-MIT`](../vision-mobile/LICENSE-MIT).
+
+---
+
 Implementa il flusso semi-automatico della strategia **TVS** (`docs/STRATEGIA_SWING.md`):
 l'app scansiona i mercati e prepara i trade; l'esecuzione avviene manualmente sul
 paper trading di TradingView; il journal integrato traccia il protocollo di

@@ -1,21 +1,64 @@
-The MIT License (MIT)
+Vision — Dual License
+=====================
 
-Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)
+Copyright (c) 2025-2026 Gabriele. All Rights Reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This license applies to the `vision-mobile` application and all related
+source code, assets, and documentation in this directory (the "Software"),
+as part of the Vision project, **except** where noted otherwise.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The Expo project template portions remain under the MIT License — see
+[`LICENSE-MIT`](./LICENSE-MIT) (Copyright 650 Industries, Inc.).
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+For the full license terms (Personal/Non-Commercial and Commercial), see the
+repository root [`LICENSE`](../LICENSE) file. The text below is included for
+standalone distribution (e.g. APK builds).
+
+
+1. PERSONAL AND NON-COMMERCIAL USE LICENSE
+------------------------------------------
+
+Permission is granted, free of charge, to any individual to use, study, and
+run the Software for **personal, non-commercial purposes only**, subject to:
+
+  (a) Permitted: personal learning, private research, personal trading tools
+      with no commercial benefit derived from the Software.
+
+  (b) Prohibited without Commercial License: business use, SaaS, redistribution,
+      sublicensing, selling access, white-label, or organisational use for
+      revenue-generating activities.
+
+  (c) Retain this copyright notice and license in all copies.
+
+  (d) Software provided "AS IS" — see disclaimer below.
+
+
+2. COMMERCIAL USE LICENSE
+---------------------------
+
+Commercial use requires a separate written agreement.
+
+Contact: gabriele02744@gmail.com
+Subject: Vision — Commercial License Request
+
+
+3. THIRD-PARTY COMPONENTS
+---------------------------
+
+Dependencies (Expo, React Native, etc.) remain under their own licenses.
+See `package.json` and `package-lock.json`. The Expo template MIT license
+is preserved in [`LICENSE-MIT`](./LICENSE-MIT).
+
+
+4. DISCLAIMER
+-------------
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. NOT FINANCIAL
+ADVICE. TRADING INVOLVES RISK. THE COPYRIGHT HOLDER IS NOT LIABLE FOR DAMAGES
+ARISING FROM USE OF THE SOFTWARE.
+
+
+5. GOVERNING LAW
+----------------
+
+Governed by the laws of Italy.

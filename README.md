@@ -1,6 +1,28 @@
 # Vision — Knowledge Base & RAG Pipeline
 
 Sistema di knowledge base per il progetto **Vision** (monitoraggio crypto e stock).
+
+## Licenza
+
+Copyright © 2025-2026 Gabriele. **Tutti i diritti riservati.**
+
+Il monorepo Vision (pipeline RAG, `src/`, `vision-mobile/`, script e documentazione)
+è rilasciato con **licenza duale**:
+
+| Uso | Condizioni |
+|-----|------------|
+| **Personale / non commerciale** | Gratuito per studio, ricerca privata e strumenti di trading personale, senza ricavo commerciale dal software. Non è consentita redistribuzione, sublicenza o uso in contesto aziendale/professionale senza accordo scritto. |
+| **Commerciale** | Qualsiasi uso commerciale (aziende, SaaS, rivendita, white-label, distribuzione interna in organizzazioni a scopo di lucro) richiede una **licenza commerciale** separata e scritta. |
+
+Testo legale completo: [`LICENSE`](./LICENSE).
+
+**Licenza MIT (Expo):** il template Expo originale resta sotto MIT in [`vision-mobile/LICENSE-MIT`](./vision-mobile/LICENSE-MIT).
+
+**Richiesta licenza commerciale:** gabriele02744@gmail.com — oggetto: *Vision — Commercial License Request*.
+
+Le librerie di terze parti (`requirements.txt`, `package.json`) restano sotto le proprie licenze.
+
+---
 Trasforma manuali di trading, finanza quantitativa e market microstructure in una
 base di conoscenza cercabile, accessibile da Cursor tramite MCP server.
 
