@@ -14,6 +14,7 @@
     "expo-splash-screen": "~31.0.13",
     "expo-sqlite": "~16.0.10",
     "expo-status-bar": "~3.0.9",
+    "expo-updates": "~29.0.18",
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-chart-kit": "^6.12.0",
@@ -33,7 +34,10 @@
     "start:tunnel": "node scripts/expo-start.js --tunnel",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit",
+    "update:preview": "eas update --channel preview --non-interactive",
+    "update:production": "eas update --channel production --non-interactive"
   },
   "private": true,
   "license": "SEE LICENSE IN LICENSE AND LICENSE-MIT"

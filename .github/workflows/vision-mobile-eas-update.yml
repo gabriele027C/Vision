@@ -1,0 +1,62 @@
+name: vision-mobile EAS Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "EAS Update channel"
+        required: true
+        default: preview
+        type: choice
+        options:
+          - preview
+          - production
+      message:
+        description: "Update message"
+        required: true
+        default: "OTA update from GitHub Actions"
+  push:
+    branches:
+      - main
+    paths:
+      - "vision-mobile/src/**"
+      - "vision-mobile/App.tsx"
+      - "vision-mobile/index.ts"
+      - "vision-mobile/package.json"
+      - "vision-mobile/app.json"
+
+defaults:
+  run:
+    working-directory: vision-mobile
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: vision-mobile/package-lock.json
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publish EAS Update
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            CHANNEL="${{ inputs.channel }}"
+            MESSAGE="${{ inputs.message }}"
+          else
+            CHANNEL="preview"
+            MESSAGE="OTA update ${GITHUB_SHA:0:7} from main"
+          fi
+          eas update --channel "$CHANNEL" --message "$MESSAGE" --non-interactive

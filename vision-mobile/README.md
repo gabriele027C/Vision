@@ -28,6 +28,42 @@ eas build --platform android --profile preview
 
 Configurazione in `eas.json`. Package Android: `com.vision.tvs`.
 
+> **Nota:** dopo l'aggiunta di EAS Update serve **un nuovo build** (`eas build`) prima che gli OTA funzionino sull'APK già installato.
+
+## CI/CD (GitHub Actions)
+
+Workflow in `.github/workflows/`:
+
+| Workflow | Trigger | Azione |
+|----------|---------|--------|
+| `vision-mobile-ci.yml` | push/PR su `vision-mobile/**` | `tsc --noEmit` |
+| `vision-mobile-eas-build.yml` | tag `vision-mobile-v*` o manuale | Build Android su EAS |
+| `vision-mobile-eas-update.yml` | push su `main` (solo JS/TS) o manuale | Pubblica OTA su channel `preview` |
+
+**Secret richiesto** su GitHub → Settings → Secrets → Actions:
+
+- `EXPO_TOKEN` — token da [expo.dev/settings/access-tokens](https://expo.dev/settings/access-tokens)
+
+Build manuale da GitHub: Actions → *vision-mobile EAS Build* → Run workflow.
+
+## EAS Update (OTA)
+
+Aggiornamenti JavaScript/TypeScript **senza reinstallare l'APK** (dopo un build con channel `preview` o `production`).
+
+```bash
+# Pubblica update sul channel preview (dev / APK sideload)
+npm run update:preview -- --message "Fix watchlist"
+
+# Production
+npm run update:production -- --message "Release notes"
+```
+
+L'app controlla gli update all'avvio (`src/updates/checkForUpdates.ts`) e si riavvia se ne trova uno.
+
+**Quando serve un nuovo build nativo** (non basta OTA): nuove dipendenze native, cambio `app.json` plugins, bump `runtimeVersion` / SDK Expo.
+
+Channel configurati in `eas.json`: `preview` (APK) e `production` (AAB).
+
 ## Licenza
 
 Copyright © 2025-2026 Gabriele. **Tutti i diritti riservati.**

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 import { Text, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
@@ -8,6 +8,7 @@ import { AppProvider, useApp } from "./src/context/AppContext";
 import ErrorBoundary from "./src/components/ErrorBoundary";
 import TabNavigator from "./src/navigation/TabNavigator";
 import { colors, common } from "./src/theme";
+import { checkForAppUpdates } from "./src/updates/checkForUpdates";
 
 function AppContent() {
   const { error, navigationRef } = useApp();
@@ -28,6 +29,10 @@ function AppContent() {
 }
 
 export default function App() {
+  useEffect(() => {
+    void checkForAppUpdates();
+  }, []);
+
   return (
     <ErrorBoundary>
       <SafeAreaProvider>

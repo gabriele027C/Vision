@@ -3,6 +3,14 @@
     "name": "Vision TVS",
     "slug": "vision-mobile",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/7e0ef698-b48b-4ed9-aba6-72bfa5d48b39",
+      "fallbackToCacheTimeout": 0,
+      "checkAutomatically": "ON_LOAD"
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -16,6 +24,7 @@
     },
     "android": {
       "package": "com.vision.tvs",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#0b0f17",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -29,7 +38,8 @@
     "plugins": [
       "expo-sqlite",
       "expo-asset",
-      "expo-font"
+      "expo-font",
+      "expo-updates"
     ],
     "extra": {
       "eas": {
