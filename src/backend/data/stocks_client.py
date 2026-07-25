@@ -9,6 +9,8 @@ import io
 import json
 import logging
 import time
+from datetime import datetime, time as dtime
+from zoneinfo import ZoneInfo
 
 import httpx
 import pandas as pd
@@ -17,6 +19,27 @@ import yfinance as yf
 from config import CACHE_DIR
 
 log = logging.getLogger(__name__)
+
+NY_TZ = ZoneInfo("America/New_York")
+SESSION_CLOSE = dtime(16, 0)
+
+
+def _drop_unclosed_daily(df: pd.DataFrame) -> pd.DataFrame:
+    """Scarta la barra daily di oggi se la sessione USA non è ancora chiusa.
+
+    Durante l'orario di cassa Yahoo include la barra parziale del giorno:
+    usarla contamina RVOL (volume sottostimato), trigger/stop (high/low non
+    definitivi, repainting a ogni scan) e tutti gli indicatori. Il client
+    crypto tronca già la candela in formazione: qui l'equivalente per le stock.
+    """
+    if df.empty:
+        return df
+    now_ny = datetime.now(NY_TZ)
+    last_ts = df.index[-1]
+    last_date = last_ts.tz_convert(NY_TZ).date() if last_ts.tzinfo else last_ts.date()
+    if last_date == now_ny.date() and now_ny.time() < SESSION_CLOSE:
+        return df.iloc[:-1]
+    return df
 
 UNIVERSE_CACHE = CACHE_DIR / "universe_stocks.json"
 UNIVERSE_MAX_AGE_S = 7 * 24 * 3600  # refresh settimanale
@@ -83,6 +106,7 @@ def daily_history(
             except KeyError:
                 continue
             df = df.dropna(subset=["Close"])
+            df = _drop_unclosed_daily(df)
             if len(df) < min_bars:
                 continue
             df = df.rename(columns=str.lower)[["open", "high", "low", "close", "volume"]]
@@ -91,12 +115,41 @@ def daily_history(
 
 
 def intraday_4h(ticker: str) -> pd.DataFrame:
-    """Candele 1h (max 60 giorni su Yahoo) ricampionate a 4h, per i trigger di entrata."""
+    """Candele 1h (max 60 giorni su Yahoo) ricampionate a 4h, per i trigger di entrata.
+
+    Le barre sono ancorate alle 9:30 ET (apertura di cassa) e limitate alla
+    regular session: il vecchio resample a mezzanotte UTC produceva candele
+    4H inesistenti su qualsiasi chart (mescolavano pezzi di sessioni diverse).
+    Ritorna solo barre chiuse: la barra 4H in formazione è esclusa, come fa
+    il percorso crypto con df4.iloc[:-1].
+    """
     df = yf.download(ticker, period="60d", interval="1h", auto_adjust=True, progress=False)
     if df is None or df.empty:
         return pd.DataFrame()
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
     df = df.rename(columns=str.lower)
+
+    if df.index.tz is None:
+        df.index = df.index.tz_localize("UTC")
+    df = df.tz_convert(NY_TZ)
+    df = df.between_time("09:30", "15:59")  # solo regular session
+    if df.empty:
+        return pd.DataFrame()
+
     agg = {"open": "first", "high": "max", "low": "min", "close": "last", "volume": "sum"}
-    return df.resample("4h").agg(agg).dropna(subset=["close"])
+    out = df.resample("4h", offset="9h30min").agg(agg).dropna(subset=["close"])
+    if out.empty:
+        return out
+
+    # Scarta l'ultima barra se non è ancora chiusa: chiude al più presto tra
+    # inizio+4h e la chiusura di sessione delle 16:00 del suo giorno.
+    now_ny = pd.Timestamp.now(tz=NY_TZ)
+    last_start = out.index[-1]
+    bar_end = min(
+        last_start + pd.Timedelta(hours=4),
+        last_start.normalize() + pd.Timedelta(hours=16),
+    )
+    if now_ny < bar_end:
+        out = out.iloc[:-1]
+    return out

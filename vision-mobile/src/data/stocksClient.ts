@@ -193,6 +193,57 @@ async function mapConcurrent<T, R>(
   return out;
 }
 
+const NY_TZ = "America/New_York";
+
+/** Ora di New York per un timestamp ms: {y, m, d, minutes da mezzanotte}.
+ *  Fallback UTC-5 se Intl/timezone non è disponibile sul runtime. */
+function nyParts(ms: number): { y: number; m: number; d: number; minutes: number } {
+  try {
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: NY_TZ,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    const p: Record<string, string> = {};
+    for (const part of fmt.formatToParts(new Date(ms))) p[part.type] = part.value;
+    return {
+      y: +p.year,
+      m: +p.month,
+      d: +p.day,
+      minutes: (+p.hour % 24) * 60 + +p.minute,
+    };
+  } catch {
+    const d = new Date(ms - 5 * 3600 * 1000);
+    return {
+      y: d.getUTCFullYear(),
+      m: d.getUTCMonth() + 1,
+      d: d.getUTCDate(),
+      minutes: d.getUTCHours() * 60 + d.getUTCMinutes(),
+    };
+  }
+}
+
+const SESSION_OPEN_MIN = 9 * 60 + 30; // 9:30 ET
+const SESSION_CLOSE_MIN = 16 * 60; // 16:00 ET
+
+/** Scarta la barra daily di oggi se la sessione USA non è ancora chiusa:
+ *  Yahoo include la barra parziale intraday, che contamina RVOL, trigger,
+ *  stop e indicatori (repainting). Speculare a _drop_unclosed_daily nel backend. */
+function dropUnclosedDaily(bars: OHLCVBar[]): OHLCVBar[] {
+  if (!bars.length) return bars;
+  const now = nyParts(Date.now());
+  const last = nyParts(bars[bars.length - 1].time);
+  const sameDay = now.y === last.y && now.m === last.m && now.d === last.d;
+  if (sameDay && now.minutes < SESSION_CLOSE_MIN) {
+    return bars.slice(0, -1);
+  }
+  return bars;
+}
+
 export async function dailyHistory(
   tickers: string[],
   period: string = "2y",
@@ -208,7 +259,9 @@ export async function dailyHistory(
     const results = await mapConcurrent(chunk, concurrency, async (tkr) => {
       try {
         const bars = await yahooChart(tkr, "1d", period);
-        const valid = bars.filter((b) => b.close != null && !Number.isNaN(b.close));
+        const valid = dropUnclosedDaily(
+          bars.filter((b) => b.close != null && !Number.isNaN(b.close))
+        );
         return valid.length >= minBars ? ([tkr, valid] as const) : null;
       } catch {
         return null;
@@ -221,28 +274,52 @@ export async function dailyHistory(
   return out;
 }
 
-/** Candele 1h (max 60 giorni su Yahoo) ricampionate a 4h, per i trigger di entrata. */
+/** Candele 1h (max 60 giorni su Yahoo) ricampionate a 4h, per i trigger di entrata.
+ *
+ * Le barre sono ancorate alle 9:30 ET e limitate alla regular session:
+ * il vecchio bucketing a mezzanotte UTC produceva candele 4H inesistenti
+ * su qualsiasi chart (mescolavano pezzi di sessioni diverse). Ritorna solo
+ * barre chiuse: la 4H in formazione è esclusa, come per il percorso crypto. */
 export async function intraday4h(ticker: string): Promise<OHLCVBar[]> {
   const bars = await yahooChart(ticker, "1h", "60d");
   if (!bars.length) return [];
 
-  const bucketMs = 4 * 3600 * 1000;
-  const buckets = new Map<number, OHLCVBar>();
+  // Chiave bucket: giorno ET + indice del blocco 4H dalla 9:30
+  // (blocco 0 = 9:30-13:30, blocco 1 = 13:30-16:00).
+  const buckets = new Map<string, OHLCVBar>();
 
   for (const bar of bars) {
-    const key = Math.floor(bar.time / bucketMs) * bucketMs;
+    const p = nyParts(bar.time);
+    if (p.minutes < SESSION_OPEN_MIN || p.minutes >= SESSION_CLOSE_MIN) continue; // solo cash session
+    const block = Math.floor((p.minutes - SESSION_OPEN_MIN) / 240);
+    const key = `${p.y}-${p.m}-${p.d}-${block}`;
     const existing = buckets.get(key);
     if (!existing) {
-      buckets.set(key, { ...bar, time: key });
+      buckets.set(key, { ...bar });
     } else {
       existing.high = Math.max(existing.high, bar.high);
       existing.low = Math.min(existing.low, bar.low);
       existing.close = bar.close;
       existing.volume += bar.volume;
+      existing.time = Math.min(existing.time, bar.time);
     }
   }
 
-  return [...buckets.values()]
+  const out = [...buckets.values()]
     .filter((b) => b.close != null && !Number.isNaN(b.close))
     .sort((a, b) => a.time - b.time);
+
+  // Scarta l'ultima barra se non è ancora chiusa: chiude al più presto tra
+  // inizio+4h e la chiusura di sessione delle 16:00 del suo giorno.
+  if (out.length) {
+    const last = out[out.length - 1];
+    const start = nyParts(last.time);
+    const now = nyParts(Date.now());
+    const sameDay = now.y === start.y && now.m === start.m && now.d === start.d;
+    const barEndMin = Math.min(start.minutes + 240, SESSION_CLOSE_MIN);
+    if (sameDay && now.minutes < barEndMin) {
+      out.pop();
+    }
+  }
+  return out;
 }

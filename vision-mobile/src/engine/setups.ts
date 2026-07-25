@@ -173,8 +173,11 @@ export function setupBMetrics(bars: OHLCVBar[], direction: string): SetupBMetric
   const bbwThresh = quantile(bbwSlice, 0.1);
   const squeeze = bbwLast <= bbwThresh;
 
-  const rangeHigh = Math.max(...high.slice(-RANGE_BARS));
-  const rangeLow = Math.min(...low.slice(-RANGE_BARS));
+  // Il range di compressione esclude la barra corrente: includerla rendeva
+  // impossibile close > rangeHigh (close <= high), quindi breakout_triggered
+  // era sempre false (codice morto). Speculare al fix nel backend Python.
+  const rangeHigh = Math.max(...high.slice(-RANGE_BARS - 1, -1));
+  const rangeLow = Math.min(...low.slice(-RANGE_BARS - 1, -1));
 
   let contextOk: boolean;
   let trigger: number;

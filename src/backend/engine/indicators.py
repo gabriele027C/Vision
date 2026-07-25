@@ -11,8 +11,11 @@ def rsi(close: pd.Series, length: int = 14) -> pd.Series:
     delta = close.diff()
     gain = delta.clip(lower=0).ewm(alpha=1 / length, adjust=False).mean()
     loss = (-delta.clip(upper=0)).ewm(alpha=1 / length, adjust=False).mean()
+    # Con avg loss = 0 lo standard Wilder (e TradingView, e il motore mobile TS)
+    # è RSI = 100, non NaN.
     rs = gain / loss.replace(0, np.nan)
-    return 100 - 100 / (1 + rs)
+    out = 100 - 100 / (1 + rs)
+    return out.where(loss != 0, 100.0)
 
 
 def atr(df: pd.DataFrame, length: int = 14) -> pd.Series:
@@ -30,7 +33,9 @@ def atr(df: pd.DataFrame, length: int = 14) -> pd.Series:
 
 def bollinger_width(close: pd.Series, length: int = 20, mult: float = 2.0) -> pd.Series:
     mid = close.rolling(length).mean()
-    std = close.rolling(length).std()
+    # ddof=0 (popolazione): è la definizione usata da TradingView e dal motore
+    # mobile TS; il default pandas (ddof=1) creava soglie di squeeze divergenti.
+    std = close.rolling(length).std(ddof=0)
     return (2 * mult * std) / mid
 
 

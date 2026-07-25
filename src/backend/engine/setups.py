@@ -164,9 +164,13 @@ def setup_b_metrics(df: pd.DataFrame, direction: str) -> dict | None:
 
 
 
-    rng_high = float(df["high"].iloc[-RANGE_BARS:].max())
+    # Il range di compressione esclude la barra corrente: includerla rendeva
+    # impossibile close > rng_high (close <= high), quindi breakout_triggered
+    # era sempre False (codice morto). Il breakout è la rottura, da parte della
+    # barra corrente, del range delle RANGE_BARS barre precedenti.
+    rng_high = float(df["high"].iloc[-RANGE_BARS - 1:-1].max())
 
-    rng_low = float(df["low"].iloc[-RANGE_BARS:].min())
+    rng_low = float(df["low"].iloc[-RANGE_BARS - 1:-1].min())
 
 
 
