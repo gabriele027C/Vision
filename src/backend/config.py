@@ -26,6 +26,10 @@ RS_TOP_PERCENTILE = 0.80      # long: top 20%
 RS_BOTTOM_PERCENTILE = 0.20   # short: bottom 20%
 RVOL_INTEREST = 1.5           # soglia interesse istituzionale
 RVOL_BREAKOUT = 2.0           # soglia Setup B
+# RVOL nello screener: default = punteggio combinato 0.7*RS + 0.3*RVOL cappato
+# (ordina i candidati, non li taglia). True = scarta i candidati con
+# RVOL < RVOL_INTEREST. Confrontare le due varianti con engine/backtest.py.
+RVOL_HARD_FILTER = False
 MAX_STOP_ATR = 2.5            # geometria sfavorevole oltre questa distanza
 WATCHLIST_SIZE = 10
 VIX_HALT = 30.0

@@ -1,8 +1,24 @@
 """Selezione asset (§3): forza relativa vs benchmark + RVOL + filtro trend."""
 import pandas as pd
 
-from config import RS_BOTTOM_PERCENTILE, RS_TOP_PERCENTILE
+from config import (
+    RS_BOTTOM_PERCENTILE,
+    RS_TOP_PERCENTILE,
+    RVOL_HARD_FILTER,
+    RVOL_INTEREST,
+)
 from engine.indicators import ema, pct_return, rvol
+
+
+def rank_score(rs: float, rv: float, direction: str) -> float:
+    """Punteggio combinato 0.7*RS + 0.3*RVOL (cappato a 2x la soglia interesse).
+
+    Per gli short la forza RS è speculare (1 - rs): un candidato short è tanto
+    più forte quanto più basso è il suo percentile RS; l'RVOL alto premia in
+    entrambe le direzioni."""
+    strength = rs if direction == "long" else 1.0 - rs
+    vol_component = min(rv / RVOL_INTEREST, 2.0) / 2.0
+    return 0.7 * strength + 0.3 * vol_component
 
 
 def rs_scores(data: dict[str, pd.DataFrame], bench: pd.DataFrame) -> dict[str, float]:
@@ -50,8 +66,15 @@ def classify_candidates(
     scores: dict[str, float],
     long_allowed: bool,
     short_allowed: bool,
+    rvol_hard_filter: bool | None = None,
 ) -> list[dict]:
-    """Candidati long (top 20% RS, sopra EMA50) e short (bottom 20%, sotto EMA50)."""
+    """Candidati long (top 20% RS, sopra EMA50) e short (bottom 20%, sotto EMA50).
+
+    RVOL: default ordina per punteggio combinato 0.7*RS + 0.3*RVOL cappato
+    (rank_score); con rvol_hard_filter=True (o RVOL_HARD_FILTER in config)
+    i candidati con RVOL < RVOL_INTEREST vengono scartati del tutto."""
+    if rvol_hard_filter is None:
+        rvol_hard_filter = RVOL_HARD_FILTER
     out: list[dict] = []
     for sym, df in data.items():
         score = scores.get(sym)
@@ -66,6 +89,8 @@ def classify_candidates(
         direction = resolve_candidate_direction(score, last, e50, long_allowed, short_allowed)
         if direction is None:
             continue
+        if rvol_hard_filter and rv < RVOL_INTEREST:
+            continue
         out.append(
             {
                 "symbol": sym,
@@ -73,8 +98,9 @@ def classify_candidates(
                 "rs_score": round(score, 3),
                 "rvol": round(rv, 2),
                 "last_price": last,
+                "rank_score": round(rank_score(score, rv, direction), 4),
             }
         )
-    # I long più forti e gli short più deboli per primi.
-    out.sort(key=lambda c: c["rs_score"] if c["direction"] == "short" else -c["rs_score"])
+    # I candidati più forti per primi: RS direzionale + spinta RVOL.
+    out.sort(key=lambda c: -c["rank_score"])
     return out

@@ -1,5 +1,10 @@
 /** Selezione asset (§3): forza relativa vs benchmark + RVOL + filtro trend. */
-import { RS_BOTTOM_PERCENTILE, RS_TOP_PERCENTILE } from "../config";
+import {
+  RS_BOTTOM_PERCENTILE,
+  RS_TOP_PERCENTILE,
+  RVOL_HARD_FILTER,
+  RVOL_INTEREST,
+} from "../config";
 import { ema, pctReturn, rvol } from "./indicators";
 import type { OHLCVBar } from "./types";
 
@@ -9,6 +14,14 @@ export interface ScreenerCandidate {
   rs_score: number;
   rvol: number;
   last_price: number;
+  rank_score: number;
+}
+
+/** Punteggio combinato 0.7*RS + 0.3*RVOL cappato — speculare a rank_score in screener.py. */
+export function rankScore(rs: number, rv: number, direction: "long" | "short"): number {
+  const strength = direction === "long" ? rs : 1 - rs;
+  const volComponent = Math.min(rv / RVOL_INTEREST, 2) / 2;
+  return 0.7 * strength + 0.3 * volComponent;
 }
 
 function rankPct(raw: Record<string, number>): Record<string, number> {
@@ -74,8 +87,10 @@ export function classifyCandidates(
   data: Record<string, OHLCVBar[]>,
   scores: Record<string, number>,
   longAllowed: boolean,
-  shortAllowed: boolean
+  shortAllowed: boolean,
+  rvolHardFilter: boolean | null = null
 ): ScreenerCandidate[] {
+  const hardFilter = rvolHardFilter ?? RVOL_HARD_FILTER;
   const out: ScreenerCandidate[] = [];
   for (const [sym, bars] of Object.entries(data)) {
     const score = scores[sym];
@@ -91,6 +106,7 @@ export function classifyCandidates(
 
     const direction = resolveCandidateDirection(score, last, e50, longAllowed, shortAllowed);
     if (direction == null) continue;
+    if (hardFilter && rv < RVOL_INTEREST) continue;
 
     out.push({
       symbol: sym,
@@ -98,10 +114,10 @@ export function classifyCandidates(
       rs_score: Math.round(score * 1000) / 1000,
       rvol: Math.round(rv * 100) / 100,
       last_price: last,
+      rank_score: Math.round(rankScore(score, rv, direction) * 10000) / 10000,
     });
   }
-  out.sort((a, b) =>
-    a.direction === "short" ? a.rs_score - b.rs_score : b.rs_score - a.rs_score
-  );
+  // I candidati più forti per primi: RS direzionale + spinta RVOL.
+  out.sort((a, b) => b.rank_score - a.rank_score);
   return out;
 }
