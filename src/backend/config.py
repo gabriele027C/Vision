@@ -34,6 +34,9 @@ MAX_STOP_ATR = 2.5            # geometria sfavorevole oltre questa distanza
 WATCHLIST_SIZE = 10
 VIX_HALT = 30.0
 FUNDING_EXTREME = 0.0005      # 0.05% per 8h
+# Funding oltre FUNDING_EXTREME contro la direzione del trade: True = il row
+# diventa status "blocked" (non operabile), False = solo warning testuale.
+FUNDING_BLOCK = True
 
 # --- Default impostazioni utente ---
 DEFAULT_SETTINGS = {

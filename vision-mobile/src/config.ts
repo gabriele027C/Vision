@@ -25,6 +25,8 @@ export const MAX_STOP_ATR = 2.5;
 export const WATCHLIST_SIZE = 10;
 export const VIX_HALT = 30.0;
 export const FUNDING_EXTREME = 0.0005;
+// Funding oltre FUNDING_EXTREME contro la direzione: true = status "blocked".
+export const FUNDING_BLOCK = true;
 
 // Default settings utente
 export const DEFAULT_SETTINGS = {

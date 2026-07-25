@@ -10,7 +10,14 @@ from datetime import datetime, timezone
 
 
 
-from config import FUNDING_EXTREME, STOCK_MIN_ADR_PCT, STOCK_MIN_AVG_VOLUME, STOCK_MIN_PRICE, WATCHLIST_SIZE
+from config import (
+    FUNDING_BLOCK,
+    FUNDING_EXTREME,
+    STOCK_MIN_ADR_PCT,
+    STOCK_MIN_AVG_VOLUME,
+    STOCK_MIN_PRICE,
+    WATCHLIST_SIZE,
+)
 
 from data import binance_client, stocks_client
 
@@ -38,6 +45,31 @@ DIAG_TOP_N = 30
 
 
 
+
+
+def apply_funding_to_row(row: dict, fr: float | None, funding_block: bool | None = None) -> None:
+    """Applica il funding al row: veto (status 'blocked') se estremo contro la direzione.
+
+    Con funding_block=False (o FUNDING_BLOCK=False in config) il comportamento
+    torna al solo warning testuale."""
+
+    if fr is None:
+        return
+    if funding_block is None:
+        funding_block = FUNDING_BLOCK
+    row["funding"] = fr
+    extreme = (row["direction"] == "long" and fr > FUNDING_EXTREME) or (
+        row["direction"] == "short" and fr < -FUNDING_EXTREME
+    )
+    if not extreme:
+        return
+    if funding_block:
+        row["status"] = "blocked"
+        row["warnings"].append(
+            "Funding estremo contro la direzione: trade bloccato, rischio squeeze (§9)"
+        )
+    else:
+        row["warnings"].append("Funding estremo: affollamento, rischio squeeze (§9)")
 
 
 def _normalize_symbol(market: str, symbol: str) -> str:
@@ -254,17 +286,7 @@ class Scanner:
 
             fr = binance_client.funding_rate(row["symbol"])
 
-            if fr is not None:
-
-                row["funding"] = fr
-
-                if (row["direction"] == "long" and fr > FUNDING_EXTREME) or (
-
-                    row["direction"] == "short" and fr < -FUNDING_EXTREME
-
-                ):
-
-                    row["warnings"].append("Funding estremo: affollamento, rischio squeeze (§9)")
+            apply_funding_to_row(row, fr)
 
 
 

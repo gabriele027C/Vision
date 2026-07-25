@@ -1,5 +1,6 @@
 /** Scanner: orchestra regime → screener → setup → watchlist → alert. */
 import {
+  FUNDING_BLOCK,
   FUNDING_EXTREME,
   STOCK_MIN_ADR_PCT,
   STOCK_MIN_AVG_VOLUME,
@@ -69,6 +70,29 @@ function rollingMeanLast(arr: number[], window: number): number {
   if (arr.length < window) return NaN;
   const slice = arr.slice(-window);
   return slice.reduce((a, b) => a + b, 0) / window;
+}
+
+/** Funding estremo contro la direzione → status "blocked" — speculare a scanner.py. */
+export function applyFundingToRow(
+  row: WatchRow,
+  fr: number | null,
+  fundingBlock: boolean | null = null
+): void {
+  if (fr == null) return;
+  const block = fundingBlock ?? FUNDING_BLOCK;
+  row.funding = fr;
+  const extreme =
+    (row.direction === "long" && fr > FUNDING_EXTREME) ||
+    (row.direction === "short" && fr < -FUNDING_EXTREME);
+  if (!extreme) return;
+  if (block) {
+    row.status = "blocked";
+    row.warnings.push(
+      "Funding estremo contro la direzione: trade bloccato, rischio squeeze (§9)"
+    );
+  } else {
+    row.warnings.push("Funding estremo: affollamento, rischio squeeze (§9)");
+  }
 }
 
 function normalizeSymbol(market: string, symbol: string): string {
@@ -183,15 +207,7 @@ async function scanCrypto(): Promise<void> {
       row.status = triggerStatus4h(df4, row.direction, row.entry_trigger);
     }
     const fr = await binanceClient.fundingRate(row.symbol);
-    if (fr != null) {
-      row.funding = fr;
-      if (
-        (row.direction === "long" && fr > FUNDING_EXTREME) ||
-        (row.direction === "short" && fr < -FUNDING_EXTREME)
-      ) {
-        row.warnings.push("Funding estremo: affollamento, rischio squeeze (§9)");
-      }
-    }
+    applyFundingToRow(row, fr);
   }
 
   const ctx: MarketCtx = {

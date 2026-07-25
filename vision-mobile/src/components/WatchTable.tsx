@@ -34,7 +34,7 @@ function Badge({
   pulse,
 }: {
   label: string;
-  variant: "long" | "short" | "watch" | "near" | "triggered" | "setup";
+  variant: "long" | "short" | "watch" | "near" | "triggered" | "blocked" | "setup";
   pulse?: boolean;
 }) {
   const opacity = useRef(new Animated.Value(1)).current;
@@ -57,6 +57,7 @@ function Badge({
     watch: "rgba(139, 150, 171, 0.15)",
     near: "rgba(245, 195, 67, 0.15)",
     triggered: "rgba(79, 140, 255, 0.2)",
+    blocked: "rgba(255, 92, 112, 0.25)",
     setup: "rgba(79, 140, 255, 0.12)",
   };
   const fg: Record<string, string> = {
@@ -65,6 +66,7 @@ function Badge({
     watch: colors.textDim,
     near: colors.yellow,
     triggered: colors.accent,
+    blocked: colors.red,
     setup: colors.accent,
   };
 
@@ -127,9 +129,18 @@ function WatchRowItem({
         </Text>
         {onPlan && (
           <View style={[styles.cell, { width: COLUMNS[10].width }]}>
-            <TouchableOpacity style={[common.btn, common.btnSmall]} onPress={() => onPlan(row)}>
-              <Text style={[common.btnText, common.btnSmallText]}>Pianifica</Text>
-            </TouchableOpacity>
+            {row.status === "blocked" ? (
+              <TouchableOpacity
+                style={[common.btn, common.btnSmall, { opacity: 0.4 }]}
+                disabled
+              >
+                <Text style={[common.btnText, common.btnSmallText]}>Bloccato</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={[common.btn, common.btnSmall]} onPress={() => onPlan(row)}>
+                <Text style={[common.btnText, common.btnSmallText]}>Pianifica</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>

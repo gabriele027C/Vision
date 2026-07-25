@@ -74,7 +74,13 @@ export default function WatchTable({
               {r.funding !== null ? `${(r.funding * 100).toFixed(3)}%` : "—"}
             </td>
             <td>
-              <button className="btn small" onClick={() => onPlan(r)}>Pianifica</button>
+              {r.status === "blocked" ? (
+                <button className="btn small" disabled title="Funding estremo: non operabile">
+                  Bloccato
+                </button>
+              ) : (
+                <button className="btn small" onClick={() => onPlan(r)}>Pianifica</button>
+              )}
             </td>
           </tr>
         ))}

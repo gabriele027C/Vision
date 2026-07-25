@@ -78,6 +78,7 @@ tr:hover td { background: var(--bg-card-hover); }
 .badge.near { background: rgba(245, 195, 67, 0.15); color: var(--yellow); }
 .badge.triggered { background: rgba(79, 140, 255, 0.2); color: var(--accent); animation: pulse 1.6s infinite; }
 .badge.setup { background: rgba(79, 140, 255, 0.12); color: var(--accent); }
+.badge.blocked { background: rgba(255, 92, 112, 0.25); color: var(--red); text-decoration: line-through; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
 
 /* ---------- Bottoni / form ---------- */

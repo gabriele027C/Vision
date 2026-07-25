@@ -27,7 +27,7 @@ export interface WatchRow {
   entry_trigger: number;
   stop: number;
   atr: number;
-  status: "watch" | "near" | "triggered";
+  status: "watch" | "near" | "triggered" | "blocked";
   note: string;
   funding: number | null;
   warnings: string[];
