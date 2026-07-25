@@ -21,7 +21,7 @@ from config import (
 )
 from engine.indicators import adr_pct, bollinger_width, ema, rvol
 from engine.screener import natural_direction, resolve_candidate_direction
-from engine.setups import setup_a_metrics, setup_b_metrics
+from engine.setups import _market_params, setup_a_metrics, setup_b_metrics
 
 FilterStatus = Literal["pass", "fail", "skip", "warn"]
 FilterResult = dict[str, Any]
@@ -290,9 +290,9 @@ def diagnose_screener(
     return results
 
 
-def diagnose_setup_a(df: pd.DataFrame, direction: str) -> dict:
+def diagnose_setup_a(df: pd.DataFrame, direction: str, market: str | None = None) -> dict:
     """Decompone Setup A in check separati — eligible ⟺ detect_setup_a non None."""
-    m = setup_a_metrics(df, direction)
+    m = setup_a_metrics(df, direction, market)
     if m is None:
         filters = [
             _fr(
@@ -306,7 +306,8 @@ def diagnose_setup_a(df: pd.DataFrame, direction: str) -> dict:
         ]
         return {"eligible": False, "filters": filters}
 
-    rsi_thresh = 40 if direction == "long" else 60
+    p = _market_params(market)
+    rsi_thresh = p["RSI_LONG_MIN"] if direction == "long" else p["RSI_SHORT_MAX"]
     rsi_cmp = ">" if direction == "long" else "<"
     filters = [
         _fr(
@@ -360,9 +361,9 @@ def diagnose_setup_a(df: pd.DataFrame, direction: str) -> dict:
     return {"eligible": eligible, "filters": filters}
 
 
-def diagnose_setup_b(df: pd.DataFrame, direction: str) -> dict:
+def diagnose_setup_b(df: pd.DataFrame, direction: str, market: str | None = None) -> dict:
     """Decompone Setup B — eligible ⟺ detect_setup_b non None (trigger è informativo)."""
-    m = setup_b_metrics(df, direction)
+    m = setup_b_metrics(df, direction, market)
     if m is None:
         filters = [
             _fr(
@@ -533,8 +534,8 @@ def diagnose_asset(
     if watchlist_eligible and cand_dir:
         direction = cand_dir
 
-    setup_a = diagnose_setup_a(df, direction)
-    setup_b = diagnose_setup_b(df, direction)
+    setup_a = diagnose_setup_a(df, direction, market)
+    setup_b = diagnose_setup_b(df, direction, market)
 
     best_setup: str | None = None
     if setup_a["eligible"]:

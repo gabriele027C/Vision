@@ -12,7 +12,7 @@ import pandas as pd
 
 
 
-from config import MAX_STOP_ATR, RVOL_BREAKOUT
+from config import MARKET_PARAMS, MAX_STOP_ATR, RVOL_BREAKOUT
 
 from engine.indicators import atr, bollinger_width, ema, rsi, rvol
 
@@ -21,6 +21,36 @@ from engine.indicators import atr, bollinger_width, ema, rsi, rvol
 SQUEEZE_LOOKBACK = 60
 
 RANGE_BARS = 15  # ~3 settimane di borsa
+
+
+
+# Fallback storici (market=None): stessi valori usati prima della Fase 5.
+
+_DEFAULT_PARAMS = {
+
+    "RANGE_BARS": RANGE_BARS,
+
+    "SQUEEZE_LOOKBACK": SQUEEZE_LOOKBACK,
+
+    "RSI_LONG_MIN": 40,
+
+    "RSI_SHORT_MAX": 60,
+
+}
+
+
+
+
+
+def _market_params(market: str | None) -> dict:
+
+    """Parametri per mercato da MARKET_PARAMS, vecchi default come fallback."""
+
+    if market in MARKET_PARAMS:
+
+        return {**_DEFAULT_PARAMS, **MARKET_PARAMS[market]}
+
+    return _DEFAULT_PARAMS
 
 
 
@@ -34,13 +64,15 @@ def _round_px(x: float) -> float:
 
 
 
-def setup_a_metrics(df: pd.DataFrame, direction: str) -> dict | None:
+def setup_a_metrics(df: pd.DataFrame, direction: str, market: str | None = None) -> dict | None:
 
     """Metriche e flag Setup A — usate da detect_setup_a e diagnostica."""
 
     if len(df) < 220:
 
         return None
+
+    p = _market_params(market)
 
     close, volume = df["close"], df["volume"]
 
@@ -70,7 +102,7 @@ def setup_a_metrics(df: pd.DataFrame, direction: str) -> dict | None:
 
         in_zone = (e50.iloc[-1] - 0.5 * a) <= last <= (e20.iloc[-1] + 0.25 * a)
 
-        momentum_ok = r > 40
+        momentum_ok = r > p["RSI_LONG_MIN"]
 
         swing = float(df["low"].rolling(10).min().iloc[-1])
 
@@ -88,7 +120,7 @@ def setup_a_metrics(df: pd.DataFrame, direction: str) -> dict | None:
 
         in_zone = (e20.iloc[-1] - 0.25 * a) <= last <= (e50.iloc[-1] + 0.5 * a)
 
-        momentum_ok = r < 60
+        momentum_ok = r < p["RSI_SHORT_MAX"]
 
         swing = float(df["high"].rolling(10).max().iloc[-1])
 
@@ -136,13 +168,19 @@ def setup_a_metrics(df: pd.DataFrame, direction: str) -> dict | None:
 
 
 
-def setup_b_metrics(df: pd.DataFrame, direction: str) -> dict | None:
+def setup_b_metrics(df: pd.DataFrame, direction: str, market: str | None = None) -> dict | None:
 
     """Metriche e flag Setup B — usate da detect_setup_b e diagnostica."""
 
     if len(df) < 220:
 
         return None
+
+    p = _market_params(market)
+
+    squeeze_lookback = p["SQUEEZE_LOOKBACK"]
+
+    range_bars = p["RANGE_BARS"]
 
     close = df["close"]
 
@@ -158,7 +196,7 @@ def setup_b_metrics(df: pd.DataFrame, direction: str) -> dict | None:
 
     bbw_last = float(bbw.iloc[-1])
 
-    bbw_thresh = float(bbw.iloc[-SQUEEZE_LOOKBACK:].quantile(0.10))
+    bbw_thresh = float(bbw.iloc[-squeeze_lookback:].quantile(0.10))
 
     squeeze = bbw_last <= bbw_thresh
 
@@ -168,9 +206,9 @@ def setup_b_metrics(df: pd.DataFrame, direction: str) -> dict | None:
     # impossibile close > rng_high (close <= high), quindi breakout_triggered
     # era sempre False (codice morto). Il breakout è la rottura, da parte della
     # barra corrente, del range delle RANGE_BARS barre precedenti.
-    rng_high = float(df["high"].iloc[-RANGE_BARS - 1:-1].max())
+    rng_high = float(df["high"].iloc[-range_bars - 1:-1].max())
 
-    rng_low = float(df["low"].iloc[-RANGE_BARS - 1:-1].min())
+    rng_low = float(df["low"].iloc[-range_bars - 1:-1].min())
 
 
 
@@ -248,11 +286,11 @@ def setup_b_metrics(df: pd.DataFrame, direction: str) -> dict | None:
 
 
 
-def detect_setup_a(df: pd.DataFrame, direction: str) -> dict | None:
+def detect_setup_a(df: pd.DataFrame, direction: str, market: str | None = None) -> dict | None:
 
     """Pullback verso EMA20-EMA50 in trend allineato, volume in calo, RSI intatto."""
 
-    m = setup_a_metrics(df, direction)
+    m = setup_a_metrics(df, direction, market)
 
     if m is None:
 
@@ -290,11 +328,11 @@ def detect_setup_a(df: pd.DataFrame, direction: str) -> dict | None:
 
 
 
-def detect_setup_b(df: pd.DataFrame, direction: str) -> dict | None:
+def detect_setup_b(df: pd.DataFrame, direction: str, market: str | None = None) -> dict | None:
 
     """Compressione di volatilità (squeeze BB / range) + livello di rottura con RVOL>=2."""
 
-    m = setup_b_metrics(df, direction)
+    m = setup_b_metrics(df, direction, market)
 
     if m is None:
 

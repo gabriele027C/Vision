@@ -38,6 +38,25 @@ FUNDING_EXTREME = 0.0005      # 0.05% per 8h
 # diventa status "blocked" (non operabile), False = solo warning testuale.
 FUNDING_BLOCK = True
 
+# --- Parametri setup per mercato (Fase 5) ---
+# ATTENZIONE: questi valori sono IPOTESI INIZIALI, non parametri validati.
+# Vanno confermati o smentiti con engine/backtest.py (confronto
+# --params default vs --params market) prima di considerarli definitivi.
+MARKET_PARAMS = {
+    "crypto": {
+        "RANGE_BARS": 21,          # crypto quota 24/7: ~3 settimane = 21 barre
+        "SQUEEZE_LOOKBACK": 84,    # ~12 settimane di calendario
+        "RSI_LONG_MIN": 35,        # pullback crypto più profondi: soglia più permissiva
+        "RSI_SHORT_MAX": 65,
+    },
+    "stocks": {
+        "RANGE_BARS": 15,          # ~3 settimane di borsa
+        "SQUEEZE_LOOKBACK": 60,    # ~12 settimane di borsa
+        "RSI_LONG_MIN": 40,
+        "RSI_SHORT_MAX": 60,
+    },
+}
+
 # --- Default impostazioni utente ---
 DEFAULT_SETTINGS = {
     "capital": 4000.0,

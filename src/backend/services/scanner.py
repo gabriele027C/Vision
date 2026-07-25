@@ -428,7 +428,9 @@ class Scanner:
 
             df = data[cand["symbol"]]
 
-            setup = detect_setup_a(df, cand["direction"]) or detect_setup_b(df, cand["direction"])
+            setup = detect_setup_a(df, cand["direction"], market) or detect_setup_b(
+                df, cand["direction"], market
+            )
 
             if setup is None:
 

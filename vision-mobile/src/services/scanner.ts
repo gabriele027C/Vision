@@ -297,7 +297,8 @@ function detectSetups(
   for (const cand of candidates) {
     const bars = data[cand.symbol];
     const setup =
-      detectSetupA(bars, cand.direction) ?? detectSetupB(bars, cand.direction);
+      detectSetupA(bars, cand.direction, market) ??
+      detectSetupB(bars, cand.direction, market);
     if (!setup) continue;
 
     const row: WatchRow = {

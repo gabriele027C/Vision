@@ -28,6 +28,30 @@ export const FUNDING_EXTREME = 0.0005;
 // Funding oltre FUNDING_EXTREME contro la direzione: true = status "blocked".
 export const FUNDING_BLOCK = true;
 
+// Parametri setup per mercato (Fase 5)
+// ATTENZIONE: IPOTESI INIZIALI, non validate — confermarle con il backtester
+// Python (engine/backtest.py, --params default vs market) prima di fidarsi.
+export interface MarketParams {
+  RANGE_BARS: number;
+  SQUEEZE_LOOKBACK: number;
+  RSI_LONG_MIN: number;
+  RSI_SHORT_MAX: number;
+}
+export const MARKET_PARAMS: Record<"crypto" | "stocks", MarketParams> = {
+  crypto: {
+    RANGE_BARS: 21,
+    SQUEEZE_LOOKBACK: 84,
+    RSI_LONG_MIN: 35,
+    RSI_SHORT_MAX: 65,
+  },
+  stocks: {
+    RANGE_BARS: 15,
+    SQUEEZE_LOOKBACK: 60,
+    RSI_LONG_MIN: 40,
+    RSI_SHORT_MAX: 60,
+  },
+};
+
 // Default settings utente
 export const DEFAULT_SETTINGS = {
   capital: 4000.0,

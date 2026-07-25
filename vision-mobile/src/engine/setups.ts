@@ -2,12 +2,27 @@
  *
  * Implementazione fedele a docs/STRATEGIA_SWING.md §4-§6.
  */
-import { MAX_STOP_ATR, RVOL_BREAKOUT } from "../config";
+import { MARKET_PARAMS, MAX_STOP_ATR, RVOL_BREAKOUT, type MarketParams } from "../config";
 import { atr, bollingerWidth, ema, rsi, rvol } from "./indicators";
 import type { OHLCVBar } from "./types";
 
 export const SQUEEZE_LOOKBACK = 60;
 export const RANGE_BARS = 15;
+
+// Fallback storici (market assente): stessi valori usati prima della Fase 5.
+const DEFAULT_PARAMS: MarketParams = {
+  RANGE_BARS,
+  SQUEEZE_LOOKBACK,
+  RSI_LONG_MIN: 40,
+  RSI_SHORT_MAX: 60,
+};
+
+export function marketParams(market?: "crypto" | "stocks" | null): MarketParams {
+  if (market && MARKET_PARAMS[market]) {
+    return { ...DEFAULT_PARAMS, ...MARKET_PARAMS[market] };
+  }
+  return DEFAULT_PARAMS;
+}
 
 function roundPx(x: number): number {
   return parseFloat(x.toPrecision(6));
@@ -73,8 +88,13 @@ export interface SetupAMetrics {
   vol20: number;
 }
 
-export function setupAMetrics(bars: OHLCVBar[], direction: string): SetupAMetrics | null {
+export function setupAMetrics(
+  bars: OHLCVBar[],
+  direction: string,
+  market?: "crypto" | "stocks" | null
+): SetupAMetrics | null {
   if (bars.length < 220) return null;
+  const p = marketParams(market);
 
   const { high, low, close, volume } = ohlcvCols(bars);
   const e20 = ema(close, 20);
@@ -104,7 +124,7 @@ export function setupAMetrics(bars: OHLCVBar[], direction: string): SetupAMetric
       e50[e50.length - 1] > e200[e200.length - 1] &&
       e50[e50.length - 1] > e50[e50.length - 6];
     inZone = e50[e50.length - 1] - 0.5 * a <= last && last <= e20[e20.length - 1] + 0.25 * a;
-    momentumOk = r > 40;
+    momentumOk = r > p.RSI_LONG_MIN;
     const swingSeries = rollingMin(low, 10);
     swing = swingSeries[swingSeries.length - 1];
     stop = swing - 0.5 * a;
@@ -115,7 +135,7 @@ export function setupAMetrics(bars: OHLCVBar[], direction: string): SetupAMetric
       e50[e50.length - 1] < e200[e200.length - 1] &&
       e50[e50.length - 1] < e50[e50.length - 6];
     inZone = e20[e20.length - 1] - 0.25 * a <= last && last <= e50[e50.length - 1] + 0.5 * a;
-    momentumOk = r < 60;
+    momentumOk = r < p.RSI_SHORT_MAX;
     const swingSeries = rollingMax(high, 10);
     swing = swingSeries[swingSeries.length - 1];
     stop = swing + 0.5 * a;
@@ -157,8 +177,13 @@ export interface SetupBMetrics {
   last: number;
 }
 
-export function setupBMetrics(bars: OHLCVBar[], direction: string): SetupBMetrics | null {
+export function setupBMetrics(
+  bars: OHLCVBar[],
+  direction: string,
+  market?: "crypto" | "stocks" | null
+): SetupBMetrics | null {
   if (bars.length < 220) return null;
+  const p = marketParams(market);
 
   const { high, low, close, volume } = ohlcvCols(bars);
   const e200Series = ema(close, 200);
@@ -169,15 +194,15 @@ export function setupBMetrics(bars: OHLCVBar[], direction: string): SetupBMetric
 
   const bbw = bollingerWidth(close);
   const bbwLast = bbw[bbw.length - 1];
-  const bbwSlice = bbw.slice(-SQUEEZE_LOOKBACK);
+  const bbwSlice = bbw.slice(-p.SQUEEZE_LOOKBACK);
   const bbwThresh = quantile(bbwSlice, 0.1);
   const squeeze = bbwLast <= bbwThresh;
 
   // Il range di compressione esclude la barra corrente: includerla rendeva
   // impossibile close > rangeHigh (close <= high), quindi breakout_triggered
   // era sempre false (codice morto). Speculare al fix nel backend Python.
-  const rangeHigh = Math.max(...high.slice(-RANGE_BARS - 1, -1));
-  const rangeLow = Math.min(...low.slice(-RANGE_BARS - 1, -1));
+  const rangeHigh = Math.max(...high.slice(-p.RANGE_BARS - 1, -1));
+  const rangeLow = Math.min(...low.slice(-p.RANGE_BARS - 1, -1));
 
   let contextOk: boolean;
   let trigger: number;
@@ -231,8 +256,12 @@ export interface SetupSignal {
   note: string;
 }
 
-export function detectSetupA(bars: OHLCVBar[], direction: string): SetupSignal | null {
-  const m = setupAMetrics(bars, direction);
+export function detectSetupA(
+  bars: OHLCVBar[],
+  direction: string,
+  market?: "crypto" | "stocks" | null
+): SetupSignal | null {
+  const m = setupAMetrics(bars, direction, market);
   if (m == null) return null;
   if (!(m.aligned && m.in_zone && m.momentum_ok && m.vol_declining)) return null;
   if (!m.stop_geometry_ok) return null;
@@ -248,8 +277,12 @@ export function detectSetupA(bars: OHLCVBar[], direction: string): SetupSignal |
   };
 }
 
-export function detectSetupB(bars: OHLCVBar[], direction: string): SetupSignal | null {
-  const m = setupBMetrics(bars, direction);
+export function detectSetupB(
+  bars: OHLCVBar[],
+  direction: string,
+  market?: "crypto" | "stocks" | null
+): SetupSignal | null {
+  const m = setupBMetrics(bars, direction, market);
   if (m == null) return null;
   if (!m.squeeze) return null;
   if (!m.context_ok) return null;

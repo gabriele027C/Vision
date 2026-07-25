@@ -281,12 +281,15 @@ def build_production_signal_fn(
     data: dict[str, pd.DataFrame],
     bench: pd.DataFrame,
     rvol_hard_filter: bool | None = None,
+    setups_market: str | None = None,
 ):
     """signal_fn che replica lo scanner: RS + classify_candidates + Setup A/B.
 
     Il regime di mercato non è applicato (long e short sempre consentiti):
     il backtest misura l'edge di screener+setup, non il filtro di regime.
-    rvol_hard_filter permette di confrontare le due varianti RVOL (Fase 3)."""
+    rvol_hard_filter permette di confrontare le due varianti RVOL (Fase 3);
+    setups_market ("crypto"/"stocks") attiva i MARKET_PARAMS della Fase 5,
+    None usa i vecchi default."""
 
     def signal_fn(hist: pd.DataFrame, date: pd.Timestamp):
         slices = {s: d.loc[d.index < date] for s, d in data.items()}
@@ -304,7 +307,9 @@ def build_production_signal_fn(
         if cand is None:
             return None
         direction = cand["direction"]
-        setup = detect_setup_a(hist, direction) or detect_setup_b(hist, direction)
+        setup = detect_setup_a(hist, direction, setups_market) or detect_setup_b(
+            hist, direction, setups_market
+        )
         if setup is None:
             return None
         return {**setup, "direction": direction}
@@ -430,6 +435,7 @@ def run_backtest(
     risk_pct: float = 1.0,
     time_stop: int | None = None,
     rvol_hard_filter: bool | None = None,
+    setups_market: str | None = None,
 ) -> list[Trade]:
     """Scarica i dati dai client esistenti e simula tutti i simboli."""
     warmup = start - pd.Timedelta(days=400)  # 220 barre + buffer weekend/festivi
@@ -459,7 +465,9 @@ def run_backtest(
 
     trades: list[Trade] = []
     for sym, df in data.items():
-        fn = build_production_signal_fn(sym, data, bench, rvol_hard_filter=rvol_hard_filter)
+        fn = build_production_signal_fn(
+            sym, data, bench, rvol_hard_filter=rvol_hard_filter, setups_market=setups_market
+        )
         trades.extend(
             simulate_symbol(
                 df,
@@ -492,6 +500,12 @@ def main() -> None:
         action="store_true",
         help="scarta candidati con RVOL < RVOL_INTEREST (variante Fase 3)",
     )
+    ap.add_argument(
+        "--params",
+        choices=["default", "market"],
+        default="default",
+        help="'market' usa i MARKET_PARAMS della Fase 5, 'default' i vecchi valori",
+    )
     args = ap.parse_args()
 
     symbols = [s.strip().upper() for s in args.symbols.split(",") if s.strip()]
@@ -508,8 +522,9 @@ def main() -> None:
         risk_pct=args.risk_pct,
         time_stop=args.time_stop,
         rvol_hard_filter=True if args.rvol_hard else None,
+        setups_market=args.market if args.params == "market" else None,
     )
-    print(format_report(trades, market=args.market, split=split))
+    print(format_report(trades, market=args.market, split=split, label=f"params={args.params}"))
     print(f"\ntrade totali: {len(trades)}")
     for t in trades:
         print(

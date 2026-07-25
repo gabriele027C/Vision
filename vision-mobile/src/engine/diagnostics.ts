@@ -14,7 +14,7 @@ import {
 } from "../config";
 import { adrPct, bollingerWidth, ema, rvol } from "./indicators";
 import { naturalDirection, resolveCandidateDirection } from "./screener";
-import { setupAMetrics, setupBMetrics } from "./setups";
+import { marketParams, setupAMetrics, setupBMetrics } from "./setups";
 import type { AssetDiagnostics, FilterResult, FilterStatus, OHLCVBar } from "./types";
 
 const CRYPTO_MIXED_SYMBOLS = new Set(["BTCUSDT", "ETHUSDT"]);
@@ -268,9 +268,10 @@ export function diagnoseScreener(
 
 export function diagnoseSetupA(
   bars: OHLCVBar[],
-  direction: string
+  direction: string,
+  market?: "crypto" | "stocks" | null
 ): { eligible: boolean; filters: FilterResult[] } {
-  const m = setupAMetrics(bars, direction);
+  const m = setupAMetrics(bars, direction, market);
   if (m == null) {
     return {
       eligible: false,
@@ -284,7 +285,8 @@ export function diagnoseSetupA(
     };
   }
 
-  const rsiThresh = direction === "long" ? 40 : 60;
+  const p = marketParams(market);
+  const rsiThresh = direction === "long" ? p.RSI_LONG_MIN : p.RSI_SHORT_MAX;
   const rsiCmp = direction === "long" ? ">" : "<";
   const filters: FilterResult[] = [
     fr("setup_a_aligned", "Trend allineato (EMA20/50/200)", m.aligned ? "pass" : "fail", {
@@ -325,9 +327,10 @@ export function diagnoseSetupA(
 
 export function diagnoseSetupB(
   bars: OHLCVBar[],
-  direction: string
+  direction: string,
+  market?: "crypto" | "stocks" | null
 ): { eligible: boolean; filters: FilterResult[] } {
-  const m = setupBMetrics(bars, direction);
+  const m = setupBMetrics(bars, direction, market);
   if (m == null) {
     return {
       eligible: false,
@@ -497,8 +500,8 @@ export function diagnoseAsset(
   let direction: "long" | "short" = candDir ?? suggested ?? "long";
   if (watchlistEligible && candDir) direction = candDir;
 
-  const setupA = diagnoseSetupA(bars, direction);
-  const setupB = diagnoseSetupB(bars, direction);
+  const setupA = diagnoseSetupA(bars, direction, market);
+  const setupB = diagnoseSetupB(bars, direction, market);
 
   let bestSetup: "A" | "B" | null = null;
   if (setupA.eligible) bestSetup = "A";
