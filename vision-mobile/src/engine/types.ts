@@ -62,6 +62,16 @@ export interface Sizing {
   half_size: boolean;
   target_2r_long: number;
   target_2r_short: number;
+  direction: "long" | "short";
+  market: "crypto" | "stocks";
+  leverage: number;
+  max_leverage: number;
+  leverage_capped: boolean;
+  liq_price: number | null;
+  liq_safe: boolean;
+  round_trip_cost: number;
+  target_2r_net_long: number;
+  target_2r_net_short: number;
 }
 
 export interface SizingError {
