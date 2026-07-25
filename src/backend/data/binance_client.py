@@ -44,14 +44,7 @@ def top_usdt_symbols(n: int = CRYPTO_TOP_N) -> list[str]:
     return [s for s, _ in rows[:n]]
 
 
-def klines(symbol: str, interval: str = "1d", limit: int = 400) -> pd.DataFrame:
-    """OHLCV come DataFrame indicizzato per datetime (solo candele chiuse)."""
-    raw = _get(
-        f"{SPOT}/api/v3/klines",
-        params={"symbol": symbol, "interval": interval, "limit": limit},
-    )
-    if not raw:
-        return pd.DataFrame()
+def _klines_to_df(raw: list) -> pd.DataFrame:
     df = pd.DataFrame(
         raw,
         columns=[
@@ -61,9 +54,51 @@ def klines(symbol: str, interval: str = "1d", limit: int = 400) -> pd.DataFrame:
     )
     df = df.astype({"open": float, "high": float, "low": float, "close": float, "volume": float})
     df.index = pd.to_datetime(df["open_time"], unit="ms", utc=True)
-    df = df[["open", "high", "low", "close", "volume"]]
+    return df[["open", "high", "low", "close", "volume"]]
+
+
+def klines(symbol: str, interval: str = "1d", limit: int = 400) -> pd.DataFrame:
+    """OHLCV come DataFrame indicizzato per datetime (solo candele chiuse)."""
+    raw = _get(
+        f"{SPOT}/api/v3/klines",
+        params={"symbol": symbol, "interval": interval, "limit": limit},
+    )
+    if not raw:
+        return pd.DataFrame()
     # L'ultima candela è ancora in formazione: la teniamo ma il chiamante lo sa.
-    return df
+    return _klines_to_df(raw)
+
+
+def klines_range(
+    symbol: str,
+    interval: str = "1d",
+    start_ms: int | None = None,
+    end_ms: int | None = None,
+) -> pd.DataFrame:
+    """Storico OHLCV paginato oltre il limite di 1000 candele per richiesta.
+
+    Usato dal backtester per scaricare anni di daily. Ritorna barre ordinate,
+    senza duplicati; l'ultima può essere in formazione come per klines().
+    """
+    frames: list[pd.DataFrame] = []
+    cursor = start_ms
+    while True:
+        params: dict = {"symbol": symbol, "interval": interval, "limit": 1000}
+        if cursor is not None:
+            params["startTime"] = cursor
+        if end_ms is not None:
+            params["endTime"] = end_ms
+        raw = _get(f"{SPOT}/api/v3/klines", params=params)
+        if not raw:
+            break
+        frames.append(_klines_to_df(raw))
+        if len(raw) < 1000:
+            break
+        cursor = int(raw[-1][0]) + 1
+    if not frames:
+        return pd.DataFrame()
+    out = pd.concat(frames)
+    return out[~out.index.duplicated(keep="first")].sort_index()
 
 
 def funding_rate(symbol: str) -> float | None:
