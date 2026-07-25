@@ -194,7 +194,8 @@ export function setupBMetrics(
 
   const bbw = bollingerWidth(close);
   const bbwLast = bbw[bbw.length - 1];
-  const bbwSlice = bbw.slice(-p.SQUEEZE_LOOKBACK);
+  // Quantile sulle barre PRECEDENTI la corrente — speculare a setups.py.
+  const bbwSlice = bbw.slice(-p.SQUEEZE_LOOKBACK - 1, -1);
   const bbwThresh = quantile(bbwSlice, 0.1);
   const squeeze = bbwLast <= bbwThresh;
 
@@ -308,8 +309,9 @@ export function triggerStatus4h(
 
   const lastClose = bars4h[bars4h.length - 1].close;
   const vol = bars4h.map((b) => b.volume);
+  // Media delle 20 barre precedenti (equivalente a shift(1) in pandas).
   const volMean = rollingMean(vol, 20);
-  const volOk = vol[vol.length - 1] > volMean[volMean.length - 1];
+  const volOk = vol[vol.length - 1] > volMean[volMean.length - 2];
 
   if (direction === "long") {
     if (lastClose > trigger && volOk) return "triggered";

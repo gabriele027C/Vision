@@ -196,7 +196,9 @@ def setup_b_metrics(df: pd.DataFrame, direction: str, market: str | None = None)
 
     bbw_last = float(bbw.iloc[-1])
 
-    bbw_thresh = float(bbw.iloc[-squeeze_lookback:].quantile(0.10))
+    # Quantile calcolato sulle barre PRECEDENTI la corrente: includere la barra
+    # corrente nel campione abbassa la soglia proprio quando serve confrontarla.
+    bbw_thresh = float(bbw.iloc[-squeeze_lookback - 1:-1].quantile(0.10))
 
     squeeze = bbw_last <= bbw_thresh
 
@@ -384,7 +386,12 @@ def trigger_status_4h(df_4h: pd.DataFrame, direction: str, trigger: float) -> st
 
     last_close = float(df_4h["close"].iloc[-1])
 
-    vol_ok = df_4h["volume"].iloc[-1] > df_4h["volume"].rolling(20).mean().iloc[-1]
+    # Media delle 20 barre precedenti (shift(1)): la barra corrente non deve
+    # gonfiare la media contro cui viene confrontata.
+    vol_ok = (
+        df_4h["volume"].iloc[-1]
+        > df_4h["volume"].rolling(20).mean().shift(1).iloc[-1]
+    )
 
     if direction == "long":
 

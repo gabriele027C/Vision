@@ -10,20 +10,52 @@ import type { OHLCVBar } from "../engine/types";
 const SPOT = "https://api.binance.com";
 const FUTURES = "https://fapi.binance.com";
 const TIMEOUT_MS = 20_000;
+const MAX_RETRIES = 3;
+const BASE_BACKOFF_MS = 1000;
 
-async function get<T>(url: string, params?: Record<string, string | number>): Promise<T> {
-  const qs = params
-    ? "?" + new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)])).toString()
-    : "";
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchOnce<T>(url: string): Promise<T> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
-    const resp = await fetch(url + qs, { signal: ctrl.signal });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${url}`);
+    const resp = await fetch(url, { signal: ctrl.signal });
+    if (!resp.ok) {
+      const err = new Error(`HTTP ${resp.status}: ${url}`) as Error & { status?: number };
+      err.status = resp.status;
+      throw err;
+    }
     return (await resp.json()) as T;
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** GET con retry a backoff esponenziale (3 tentativi) su 429/5xx e timeout — speculare a binance_client.py. */
+async function get<T>(url: string, params?: Record<string, string | number>): Promise<T> {
+  const qs = params
+    ? "?" + new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)])).toString()
+    : "";
+  let delay = BASE_BACKOFF_MS;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await fetchOnce<T>(url + qs);
+    } catch (exc) {
+      const status = (exc as { status?: number }).status;
+      const isTimeout = exc instanceof Error && exc.name === "AbortError";
+      const retriable = isTimeout || status === 429 || (status != null && status >= 500);
+      if (!retriable || attempt === MAX_RETRIES) throw exc;
+      console.warn(
+        `[binance] ${isTimeout ? "timeout" : `HTTP ${status}`} su ${url} ` +
+          `(tentativo ${attempt}/${MAX_RETRIES}), retry tra ${delay}ms`
+      );
+      await sleep(delay);
+      delay *= 2;
+    }
+  }
+  throw new Error("unreachable");
 }
 
 interface Ticker24hr {
@@ -73,7 +105,8 @@ export async function fundingRate(symbol: string): Promise<number | null> {
       { symbol }
     );
     return parseFloat(data.lastFundingRate);
-  } catch {
+  } catch (exc) {
+    console.warn(`[binance] funding rate ${symbol} non disponibile:`, exc);
     return null;
   }
 }

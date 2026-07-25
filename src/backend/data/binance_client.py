@@ -1,5 +1,6 @@
 """Client API pubblica Binance (spot + funding futures). Nessuna API key richiesta."""
 import logging
+import time
 
 import httpx
 import pandas as pd
@@ -18,11 +19,40 @@ FUTURES = "https://fapi.binance.com"
 
 _client = httpx.Client(timeout=20.0)
 
+MAX_RETRIES = 3
+_BASE_BACKOFF_S = 1.0
+
 
 def _get(url: str, params: dict | None = None):
-    resp = _client.get(url, params=params)
-    resp.raise_for_status()
-    return resp.json()
+    """GET con retry a backoff esponenziale (3 tentativi) su 429/5xx e timeout.
+
+    Gli altri errori HTTP (4xx) non sono transitori e vengono rilanciati subito."""
+    delay = _BASE_BACKOFF_S
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            resp = _client.get(url, params=params)
+        except httpx.TimeoutException:
+            if attempt == MAX_RETRIES:
+                raise
+            log.warning(
+                "timeout su %s (tentativo %d/%d), retry tra %.1fs",
+                url, attempt, MAX_RETRIES, delay,
+            )
+            time.sleep(delay)
+            delay *= 2
+            continue
+        if resp.status_code == 429 or resp.status_code >= 500:
+            if attempt == MAX_RETRIES:
+                resp.raise_for_status()
+            log.warning(
+                "HTTP %d su %s (tentativo %d/%d), retry tra %.1fs",
+                resp.status_code, url, attempt, MAX_RETRIES, delay,
+            )
+            time.sleep(delay)
+            delay *= 2
+            continue
+        resp.raise_for_status()
+        return resp.json()
 
 
 def top_usdt_symbols(n: int = CRYPTO_TOP_N) -> list[str]:
@@ -106,5 +136,6 @@ def funding_rate(symbol: str) -> float | None:
     try:
         data = _get(f"{FUTURES}/fapi/v1/premiumIndex", params={"symbol": symbol})
         return float(data["lastFundingRate"])
-    except Exception:
+    except Exception as exc:
+        log.warning("funding rate %s non disponibile: %s", symbol, exc)
         return None
