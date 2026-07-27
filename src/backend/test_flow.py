@@ -25,12 +25,12 @@ def test_classify_oi_thresholds():
 
 
 def test_classify_cvd_thresholds():
-    assert classify_cvd(0.15) == "up"
-    assert classify_cvd(0.1) == "up"
+    assert classify_cvd(0.03) == "up"
+    assert classify_cvd(0.02) == "up"
     assert classify_cvd(0.0) == "flat"
-    assert classify_cvd(-0.1) == "down"
-    assert classify_cvd(-0.3) == "down_strong"
-    assert classify_cvd(-0.5) == "down_strong"
+    assert classify_cvd(-0.02) == "down"
+    assert classify_cvd(-0.06) == "down_strong"
+    assert classify_cvd(-0.1) == "down_strong"
 
 
 def test_oi_deltas_from_4h_hist():

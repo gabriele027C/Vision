@@ -82,9 +82,11 @@ export const PLAYBOOK_THRESHOLDS = {
   },
   cvd: {
     slope_bars: 20,
-    up: 0.1,
-    down: -0.1,
-    down_strong: -0.3,
+    // Calibrato 2026-07-27 su scan live: |slope| tipica 0.01–0.04; ±0.1 → tutto flat.
+    // IPOTESI NON VALIDATE — riaffinare sull'uso reale.
+    up: 0.02,
+    down: -0.02,
+    down_strong: -0.06,
   },
 } as const;
 export const OI_HIST_CACHE_TTL_S = 3600;

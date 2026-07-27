@@ -21,12 +21,12 @@ const OI_CASES: [number, string][] = [
 ];
 
 const CVD_CASES: [number, string][] = [
-  [0.15, "up"],
-  [0.1, "up"],
+  [0.03, "up"],
+  [0.02, "up"],
   [0.0, "flat"],
-  [-0.1, "down"],
-  [-0.29, "down"],
-  [-0.3, "down_strong"],
+  [-0.02, "down"],
+  [-0.05, "down"],
+  [-0.06, "down_strong"],
 ];
 
 export function runFlowParityChecks(): string[] {

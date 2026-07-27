@@ -107,9 +107,13 @@ PLAYBOOK_THRESHOLDS = {
     },
     "cvd": {
         "slope_bars": 20,            # regressione lineare su N barre
-        "up": 0.1,                   # slope normalizzata sul volume medio
-        "down": -0.1,
-        "down_strong": -0.3,
+        # Calibrato 2026-07-27 su scan live (BTC/ETH/ZEC/TRX): |slope| tipica
+        # 0.01–0.04 con soglia ±0.1 → tutto flat. Portata a ±0.02 (down_strong
+        # −0.06 in proporzione) per separare pressione lieve dal rumore.
+        # IPOTESI NON VALIDATE — da riaffinare sull'uso reale, non in questa fase.
+        "up": 0.02,
+        "down": -0.02,
+        "down_strong": -0.06,
     },
 }
 # Cache disco OI hist (period 4h): TTL 1h — coerente col TF, evita hammering REST.
