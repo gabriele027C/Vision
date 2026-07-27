@@ -1,4 +1,11 @@
-"""SQLite: impostazioni, journal trades, alert."""
+"""SQLite: impostazioni, journal trades, alert.
+
+Lo schema trades è versionato in modo conservativo: init_db() crea la tabella
+base e migrate_trades_schema() aggiunge le colonne nuove se mancano (idempotente).
+I record storici restano leggibili; i campi nuovi sono NULL.
+"""
+from __future__ import annotations
+
 import json
 import sqlite3
 import threading
@@ -8,6 +15,21 @@ from config import DB_PATH, DEFAULT_SETTINGS
 
 _lock = threading.Lock()
 _conn: sqlite3.Connection | None = None
+
+# Colonne aggiunte dopo lo schema iniziale. Migrazione idempotente via ALTER TABLE.
+# scenario_ids: JSON text (lista), anticipato per FASE 5-BIS playbook.
+TRADE_OPTIONAL_COLUMNS: list[tuple[str, str]] = [
+    ("timeframe", "TEXT"),                 # D | 4H | 1H | 15m
+    ("pattern", "TEXT"),                   # pullback | compression | breakout | discrezionale
+    ("oi_at_entry", "REAL"),
+    ("cvd_slope_at_entry", "REAL"),
+    ("funding_at_entry", "REAL"),
+    ("rvol_at_entry", "REAL"),
+    ("mae_r", "REAL"),
+    ("mfe_r", "REAL"),
+    ("note", "TEXT"),                      # nota breve opzionale (notes resta il campo storico)
+    ("scenario_ids", "TEXT"),              # JSON list[str], valorizzato dal playbook
+]
 
 
 def conn() -> sqlite3.Connection:
@@ -56,6 +78,31 @@ def init_db() -> None:
             """
         )
         c.commit()
+        _migrate_trades_schema_unlocked(c)
+
+
+def migrate_trades_schema(connection: sqlite3.Connection | None = None) -> list[str]:
+    """Aggiunge le colonne opzionali mancanti. Idempotente. Ritorna i nomi aggiunti."""
+    if connection is not None:
+        return _migrate_trades_schema_unlocked(connection)
+    with _lock:
+        return _migrate_trades_schema_unlocked(conn())
+
+
+def _migrate_trades_schema_unlocked(c: sqlite3.Connection) -> list[str]:
+    existing = {
+        row[1]
+        for row in c.execute("PRAGMA table_info(trades)").fetchall()
+    }
+    added: list[str] = []
+    for name, col_type in TRADE_OPTIONAL_COLUMNS:
+        if name in existing:
+            continue
+        c.execute(f"ALTER TABLE trades ADD COLUMN {name} {col_type}")
+        added.append(name)
+    if added:
+        c.commit()
+    return added
 
 
 def now_iso() -> str:
@@ -87,31 +134,77 @@ def update_settings(values: dict) -> dict:
 
 # ---------- Trades ----------
 
+_OPTIONAL_TRADE_KEYS = {name for name, _ in TRADE_OPTIONAL_COLUMNS}
+
+
+def _normalize_trade_row(row: sqlite3.Row | dict) -> dict:
+    d = dict(row)
+    # scenario_ids: esponi sempre come lista (None/assente → [])
+    raw = d.get("scenario_ids")
+    if raw is None or raw == "":
+        d["scenario_ids"] = []
+    elif isinstance(raw, str):
+        try:
+            parsed = json.loads(raw)
+            d["scenario_ids"] = parsed if isinstance(parsed, list) else []
+        except json.JSONDecodeError:
+            d["scenario_ids"] = []
+    return d
+
+
 def list_trades() -> list[dict]:
     with _lock:
         rows = conn().execute("SELECT * FROM trades ORDER BY opened_at DESC, id DESC").fetchall()
-    return [dict(r) for r in rows]
+    return [_normalize_trade_row(r) for r in rows]
 
 
 def create_trade(t: dict) -> dict:
+    cols = [
+        "symbol", "market", "direction", "setup", "entry_price", "stop_price",
+        "size", "risk_amount", "notes", "opened_at",
+    ]
+    vals = [
+        t["symbol"], t["market"], t["direction"], t["setup"],
+        t["entry_price"], t["stop_price"], t["size"], t["risk_amount"],
+        t.get("notes", "") or t.get("note", "") or "",
+        t.get("opened_at") or now_iso(),
+    ]
+    for key in _OPTIONAL_TRADE_KEYS:
+        if key == "notes":
+            continue
+        if key not in t or t[key] is None:
+            continue
+        cols.append(key)
+        val = t[key]
+        if key == "scenario_ids":
+            val = json.dumps(val) if not isinstance(val, str) else val
+        if key == "note" and not t.get("notes"):
+            # se arriva solo note, già coperto sopra; qui salva anche in note
+            pass
+        vals.append(val)
+
+    placeholders = ",".join("?" * len(cols))
+    col_sql = ",".join(cols)
     with _lock:
         c = conn()
         cur = c.execute(
-            """INSERT INTO trades(symbol, market, direction, setup, entry_price, stop_price,
-                                  size, risk_amount, notes, opened_at)
-               VALUES(?,?,?,?,?,?,?,?,?,?)""",
-            (
-                t["symbol"], t["market"], t["direction"], t["setup"],
-                t["entry_price"], t["stop_price"], t["size"], t["risk_amount"],
-                t.get("notes", ""), t.get("opened_at") or now_iso(),
-            ),
+            f"INSERT INTO trades({col_sql}) VALUES({placeholders})",
+            tuple(vals),
         )
         c.commit()
         row = c.execute("SELECT * FROM trades WHERE id = ?", (cur.lastrowid,)).fetchone()
-    return dict(row)
+    return _normalize_trade_row(row)
 
 
-def close_trade(trade_id: int, exit_price: float, mistake: bool, notes: str) -> dict | None:
+def close_trade(
+    trade_id: int,
+    exit_price: float,
+    mistake: bool,
+    notes: str,
+    *,
+    mae_r: float | None = None,
+    mfe_r: float | None = None,
+) -> dict | None:
     with _lock:
         c = conn()
         row = c.execute("SELECT * FROM trades WHERE id = ?", (trade_id,)).fetchone()
@@ -125,14 +218,23 @@ def close_trade(trade_id: int, exit_price: float, mistake: bool, notes: str) -> 
         else:
             r_result = (row["entry_price"] - exit_price) / risk_per_unit
         merged_notes = (row["notes"] + "\n" + notes).strip() if notes else row["notes"]
-        c.execute(
-            """UPDATE trades SET status='closed', exit_price=?, r_result=?, mistake=?,
-                                 notes=?, closed_at=? WHERE id=?""",
-            (exit_price, round(r_result, 3), int(mistake), merged_notes, now_iso(), trade_id),
-        )
+        # mae/mfe: aggiorna solo se forniti (altrimenti restano NULL o valore precedente)
+        sets = [
+            "status='closed'", "exit_price=?", "r_result=?", "mistake=?",
+            "notes=?", "closed_at=?",
+        ]
+        params: list = [exit_price, round(r_result, 3), int(mistake), merged_notes, now_iso()]
+        if mae_r is not None:
+            sets.append("mae_r=?")
+            params.append(mae_r)
+        if mfe_r is not None:
+            sets.append("mfe_r=?")
+            params.append(mfe_r)
+        params.append(trade_id)
+        c.execute(f"UPDATE trades SET {', '.join(sets)} WHERE id=?", params)
         c.commit()
         row = c.execute("SELECT * FROM trades WHERE id = ?", (trade_id,)).fetchone()
-    return dict(row)
+    return _normalize_trade_row(row)
 
 
 def delete_trade(trade_id: int) -> bool:

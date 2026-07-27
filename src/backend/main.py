@@ -121,12 +121,25 @@ class TradeCreate(BaseModel):
     size: float = Field(gt=0)
     risk_amount: float = Field(ge=0)
     notes: str = ""
+    # Campi opzionali FASE 0 (journal esteso) — null-safe, non rompono i client vecchi
+    timeframe: str | None = None
+    pattern: str | None = None
+    oi_at_entry: float | None = None
+    cvd_slope_at_entry: float | None = None
+    funding_at_entry: float | None = None
+    rvol_at_entry: float | None = None
+    mae_r: float | None = None
+    mfe_r: float | None = None
+    note: str | None = None
+    scenario_ids: list[str] | None = None
 
 
 class TradeClose(BaseModel):
     exit_price: float = Field(gt=0)
     mistake: bool = False
     notes: str = ""
+    mae_r: float | None = None
+    mfe_r: float | None = None
 
 
 @app.get("/api/trades")
@@ -136,12 +149,15 @@ def get_trades():
 
 @app.post("/api/trades")
 def post_trade(t: TradeCreate):
-    return database.create_trade(t.model_dump())
+    return database.create_trade(t.model_dump(exclude_none=True))
 
 
 @app.put("/api/trades/{trade_id}/close")
 def put_close_trade(trade_id: int, body: TradeClose):
-    result = database.close_trade(trade_id, body.exit_price, body.mistake, body.notes)
+    result = database.close_trade(
+        trade_id, body.exit_price, body.mistake, body.notes,
+        mae_r=body.mae_r, mfe_r=body.mfe_r,
+    )
     if result is None:
         raise HTTPException(404, "trade non trovato o già chiuso")
     return result

@@ -70,8 +70,52 @@ export default function Journal() {
         <div className="muted" style={{ marginTop: 8 }}>
           Soglie per passare al capitale reale: expectancy &gt; 0.15R · profit factor &gt; 1.4 · 50 trade.
           Errori di esecuzione segnati: {metrics?.mistakes ?? 0}.
+          {" "}Statistiche del journal affidabili da n≥{metrics?.reliable_stats_from_n ?? 100}
+          {metrics?.stats_reliable ? " (raggiunte)." : "."}
         </div>
       </div>
+
+      {metrics?.random_benchmark && (
+        <div className="card section">
+          <h3>Confronto col caso (R:R 2:1)</h3>
+          <p className="muted" style={{ marginBottom: 8 }}>{metrics.random_benchmark.note}</p>
+          <div className="grid grid-4">
+            <Stat label="WR tuo" value={metrics.random_benchmark.user_wr_pct} suffix="%" />
+            <Stat label="WR atteso random" value={metrics.random_benchmark.expected_wr_pct} suffix="%" />
+            <Stat
+              label="Delta (pp)"
+              value={metrics.random_benchmark.delta_wr_pp}
+              suffix={metrics.random_benchmark.delta_wr_pp != null && metrics.random_benchmark.delta_wr_pp > 0 ? " ▲" : ""}
+            />
+          </div>
+        </div>
+      )}
+
+      {metrics && ((metrics.by_timeframe?.length ?? 0) > 0 || (metrics.by_pattern?.length ?? 0) > 0) && (
+        <div className="card section">
+          <h3>Expectancy per timeframe / pattern</h3>
+          <div className="grid grid-2" style={{ gap: 16 }}>
+            <div>
+              <h4 className="muted">Timeframe</h4>
+              {(metrics.by_timeframe ?? []).length === 0 && <div className="muted">—</div>}
+              {(metrics.by_timeframe ?? []).map((b) => (
+                <div key={b.key} className="mono" style={{ marginBottom: 4 }}>
+                  {b.key}: n={b.n} WR={b.win_rate}% exp={b.expectancy}R
+                </div>
+              ))}
+            </div>
+            <div>
+              <h4 className="muted">Pattern</h4>
+              {(metrics.by_pattern ?? []).length === 0 && <div className="muted">—</div>}
+              {(metrics.by_pattern ?? []).map((b) => (
+                <div key={b.key} className="mono" style={{ marginBottom: 4 }}>
+                  {b.key}: n={b.n} WR={b.win_rate}% exp={b.expectancy}R
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {metrics && metrics.equity_curve.length > 1 && (
         <div className="card section">
@@ -99,8 +143,8 @@ export default function Journal() {
           <table>
             <thead>
               <tr>
-                <th>Aperto</th><th>Asset</th><th>Dir</th><th>Setup</th>
-                <th>Entrata</th><th>Stop</th><th>Size</th><th>Stato</th><th>R</th><th></th>
+                <th>Aperto</th><th>Asset</th><th>TF</th><th>Pattern</th><th>Dir</th><th>Setup</th>
+                <th>Entrata</th><th>Invalidazione</th><th>Size</th><th>Stato</th><th>R</th><th></th>
               </tr>
             </thead>
             <tbody>
@@ -119,6 +163,8 @@ export default function Journal() {
                     </a>{" "}
                     {t.mistake ? "⚠️" : ""}
                   </td>
+                  <td className="muted">{t.timeframe ?? "—"}</td>
+                  <td className="muted">{t.pattern ?? "—"}</td>
                   <td><span className={`badge ${t.direction}`}>{t.direction}</span></td>
                   <td>{t.setup}</td>
                   <td className="mono">{t.entry_price}</td>
