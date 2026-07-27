@@ -36,10 +36,14 @@ export interface WatchRow {
   timing?: TimingInfo[];
   /** FASE 4 — sintesi flusso (opzionali fino a popolamento). */
   oi_state?: "up" | "down" | "flat" | "collapse" | null;
+  oi_arrow?: string | null;
   oi_delta_24h?: number | null;
+  oi_delta_3d?: number | null;
   oi_value?: number | null;
   cvd_state?: "up" | "down" | "flat" | "down_strong" | null;
+  cvd_arrow?: string | null;
   cvd_slope?: number | null;
+  flow_combo_label?: string | null;
 }
 
 export interface Alert {
@@ -222,6 +226,21 @@ export interface AssetDiagnostics {
   best_setup: "A" | "B" | null;
   on_watchlist: boolean;
   blockers: string[];
+  flow?: {
+    oi_value: number | null;
+    oi_delta_24h: number | null;
+    oi_delta_3d: number | null;
+    oi_state: string | null;
+    oi_arrow: string | null;
+    cvd_slope: number | null;
+    cvd_state: string | null;
+    cvd_arrow: string | null;
+    price_state: string | null;
+    combo_key: string;
+    combo_label: string;
+    combo_message: string;
+  } | null;
+  flow_filters?: FilterResult[];
 }
 
 export interface DiagnosticsResponse {

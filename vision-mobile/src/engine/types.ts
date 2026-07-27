@@ -31,6 +31,14 @@ export interface WatchRow {
   note: string;
   funding: number | null;
   warnings: string[];
+  entry_tf?: string;
+  oi_state?: "up" | "down" | "flat" | "collapse" | null;
+  oi_arrow?: string | null;
+  oi_delta_24h?: number | null;
+  oi_value?: number | null;
+  cvd_state?: "up" | "down" | "flat" | "down_strong" | null;
+  cvd_arrow?: string | null;
+  cvd_slope?: number | null;
 }
 
 export interface Alert {

@@ -96,6 +96,27 @@ WATCHLIST_ENTRY_TFS = ("D", "4H")
 TIMING_TFS = ("1H", "15m")
 TIMING_ALERT_COOLDOWN_S = 4 * 3600  # max 1 notifica timing per asset / 4h
 
+# --- Playbook thresholds (FASE 4 / 5-BIS) ---
+# IPOTESI NON VALIDATE, da calibrare su casi reali.
+# Stati qualitativi ↑/↓/→ consumati da display e (poi) matching playbook.
+PLAYBOOK_THRESHOLDS = {
+    "oi": {
+        "up_pct_24h": 0.05,          # +5% su 24h → "up"
+        "down_pct_24h": -0.05,       # −5% su 24h → "down"
+        "collapse_pct_24h": -0.20,   # −20% su 24h → "collapse"
+    },
+    "cvd": {
+        "slope_bars": 20,            # regressione lineare su N barre
+        "up": 0.1,                   # slope normalizzata sul volume medio
+        "down": -0.1,
+        "down_strong": -0.3,
+    },
+}
+# Cache disco OI hist (period 4h): TTL 1h — coerente col TF, evita hammering REST.
+OI_HIST_CACHE_TTL_S = 3600
+OI_HIST_PERIOD = "4h"
+FUTURES_KLINES_CACHE_TTL_S = 900  # 15m — CVD da klines futures chiuse
+
 # --- Default impostazioni utente ---
 DEFAULT_SETTINGS = {
     "capital": 4000.0,

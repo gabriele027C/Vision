@@ -53,6 +53,8 @@ export default function WatchTable({
           <th>Stato</th>
           <th>RS</th>
           <th>RVOL</th>
+          <th>OI</th>
+          <th>CVD</th>
           <th>Prezzo</th>
           <th>Rottura</th>
           <th>Invalidazione</th>
@@ -90,6 +92,12 @@ export default function WatchTable({
             </span></td>
             <td className="mono">{(r.rs_score * 100).toFixed(0)}%</td>
             <td className="mono">{r.rvol.toFixed(2)}</td>
+            <td className="mono" title={r.oi_delta_24h != null ? `Δ24h ${(r.oi_delta_24h * 100).toFixed(2)}%` : undefined}>
+              {r.oi_arrow ?? "—"}
+            </td>
+            <td className="mono" title={r.cvd_slope != null ? `slope ${r.cvd_slope}` : undefined}>
+              {r.cvd_arrow ?? "—"}
+            </td>
             <td className="mono">{fmt(r.last_price)}</td>
             <td className="mono">{fmt(r.entry_trigger)}</td>
             <td className="mono">{fmt(r.stop)}</td>

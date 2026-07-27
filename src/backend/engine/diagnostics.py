@@ -518,6 +518,7 @@ def diagnose_asset(
     watchlist_eligible: bool | None = None,
     mixed_filtered: bool = False,
     capped_out: bool = False,
+    flow_snap: dict | None = None,
 ) -> dict:
     """Diagnostica completa per un singolo asset."""
     long_allowed = regime["long_allowed"] if long_allowed is None else long_allowed
@@ -575,6 +576,14 @@ def diagnose_asset(
         watchlist_cap=capped_out,
     )
 
+    flow_filters: list = []
+    flow: dict | None = None
+    if market == "crypto" and flow_snap is not None:
+        from engine.flow import flow_filters_from_snapshot
+
+        flow = flow_snap
+        flow_filters = flow_filters_from_snapshot(flow_snap)
+
     return {
         "market": market,
         "symbol": symbol,
@@ -590,4 +599,6 @@ def diagnose_asset(
         "best_setup": best_setup,
         "on_watchlist": bool(on_watchlist),
         "blockers": blockers,
+        "flow": flow,
+        "flow_filters": flow_filters,
     }

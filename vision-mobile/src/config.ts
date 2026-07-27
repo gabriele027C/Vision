@@ -70,6 +70,27 @@ export const WATCHLIST_ENTRY_TFS = ["D", "4H"] as const;
 export const TIMING_TFS = ["1H", "15m"] as const;
 export const TIMING_ALERT_COOLDOWN_S = 4 * 3600;
 
+/**
+ * FASE 4 / 5-BIS — IPOTESI NON VALIDATE, da calibrare su casi reali.
+ * Stati qualitativi ↑/↓/→ per display e matching playbook.
+ */
+export const PLAYBOOK_THRESHOLDS = {
+  oi: {
+    up_pct_24h: 0.05,
+    down_pct_24h: -0.05,
+    collapse_pct_24h: -0.2,
+  },
+  cvd: {
+    slope_bars: 20,
+    up: 0.1,
+    down: -0.1,
+    down_strong: -0.3,
+  },
+} as const;
+export const OI_HIST_CACHE_TTL_S = 3600;
+export const OI_HIST_PERIOD = "4h";
+export const FUTURES_KLINES_CACHE_TTL_S = 900;
+
 // Default settings utente
 export const DEFAULT_SETTINGS = {
   capital: 4000.0,

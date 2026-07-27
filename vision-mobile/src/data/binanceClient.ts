@@ -110,3 +110,59 @@ export async function fundingRate(symbol: string): Promise<number | null> {
     return null;
   }
 }
+
+export interface OiHistPoint {
+  timestamp: number;
+  sumOpenInterest: number;
+}
+
+/** GET /futures/data/openInterestHist — period tipico 4h. */
+export async function openInterestHist(
+  symbol: string,
+  period: string = "4h",
+  limit: number = 30
+): Promise<OiHistPoint[]> {
+  try {
+    const raw = await get<
+      { symbol: string; sumOpenInterest: string; timestamp: number }[]
+    >(`${FUTURES}/futures/data/openInterestHist`, { symbol, period, limit });
+    return (raw ?? []).map((r) => ({
+      timestamp: Number(r.timestamp),
+      sumOpenInterest: parseFloat(r.sumOpenInterest),
+    }));
+  } catch (exc) {
+    console.warn(`[binance] OI hist ${symbol} non disponibile:`, exc);
+    return [];
+  }
+}
+
+export interface FuturesBar extends OHLCVBar {
+  tbb: number;
+}
+
+/** Klines futures con taker buy base volume (per CVD). */
+export async function futuresKlines(
+  symbol: string,
+  interval: string = "4h",
+  limit: number = 100
+): Promise<FuturesBar[]> {
+  try {
+    const raw = await get<KlineRow[]>(`${FUTURES}/fapi/v1/klines`, {
+      symbol,
+      interval,
+      limit,
+    });
+    return (raw ?? []).map((row) => ({
+      time: Number(row[0]),
+      open: parseFloat(String(row[1])),
+      high: parseFloat(String(row[2])),
+      low: parseFloat(String(row[3])),
+      close: parseFloat(String(row[4])),
+      volume: parseFloat(String(row[5])),
+      tbb: parseFloat(String(row[9])),
+    }));
+  } catch (exc) {
+    console.warn(`[binance] futures klines ${symbol} non disponibili:`, exc);
+    return [];
+  }
+}

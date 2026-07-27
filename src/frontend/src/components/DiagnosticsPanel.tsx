@@ -96,7 +96,7 @@ function SetupBadge({ ok }: { ok: boolean }) {
 
 function AssetCard({ asset }: { asset: AssetDiagnostics }) {
 
-  const [open, setOpen] = useState({ regime: true, screener: true, a: false, b: false });
+  const [open, setOpen] = useState({ regime: true, screener: true, flow: true, a: false, b: false });
 
 
 
@@ -186,7 +186,7 @@ function AssetCard({ asset }: { asset: AssetDiagnostics }) {
 
           <>
 
-            <div className="diag-rs-label muted">Forza relativa (percentile)</div>
+            <div className="diag-rs-label muted">Forza relativa (percentile — ranking, non gate)</div>
 
             <RsBar rs={asset.rs_score} />
 
@@ -200,11 +200,47 @@ function AssetCard({ asset }: { asset: AssetDiagnostics }) {
 
 
 
+      {asset.market === "crypto" && (
+
+        <div className="diag-section">
+
+          <button type="button" className="diag-toggle" onClick={() => setOpen((o) => ({ ...o, flow: !o.flow }))}>
+
+            3. Flusso OI/CVD {open.flow ? "▾" : "▸"}
+
+          </button>
+
+          {open.flow && (
+
+            <>
+
+              {asset.flow && (
+
+                <div className="muted" style={{ marginBottom: 8 }}>
+
+                  {asset.flow.combo_label} — {asset.flow.combo_message}
+
+                </div>
+
+              )}
+
+              <FilterList filters={asset.flow_filters ?? []} />
+
+            </>
+
+          )}
+
+        </div>
+
+      )}
+
+
+
       <div className="diag-section">
 
         <button type="button" className="diag-toggle" onClick={() => setOpen((o) => ({ ...o, a: !o.a }))}>
 
-          3. Setup A {asset.setup_a.eligible ? "✓" : "✗"} {open.a ? "▾" : "▸"}
+          {asset.market === "crypto" ? "4" : "3"}. Setup A {asset.setup_a.eligible ? "✓" : "✗"} {open.a ? "▾" : "▸"}
 
         </button>
 
@@ -218,7 +254,7 @@ function AssetCard({ asset }: { asset: AssetDiagnostics }) {
 
         <button type="button" className="diag-toggle" onClick={() => setOpen((o) => ({ ...o, b: !o.b }))}>
 
-          4. Setup B {asset.setup_b.eligible ? "✓" : "✗"} {open.b ? "▾" : "▸"}
+          {asset.market === "crypto" ? "5" : "4"}. Setup B {asset.setup_b.eligible ? "✓" : "✗"} {open.b ? "▾" : "▸"}
 
         </button>
 

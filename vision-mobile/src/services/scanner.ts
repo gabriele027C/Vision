@@ -22,6 +22,7 @@ import type {
   WatchRow,
 } from "../engine/types";
 import { notify } from "./alerts";
+import { enrichRowWithFlow } from "./flowData";
 
 const MAX_4H_CHECKS = 15;
 const DIAG_TOP_N = 30;
@@ -208,6 +209,11 @@ async function scanCrypto(): Promise<void> {
     }
     const fr = await binanceClient.fundingRate(row.symbol);
     applyFundingToRow(row, fr);
+  }
+
+  setProgress("Crypto: OI/CVD su watchlist...");
+  for (const row of rows) {
+    await enrichRowWithFlow(row);
   }
 
   const ctx: MarketCtx = {

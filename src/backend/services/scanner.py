@@ -40,6 +40,8 @@ from engine.diagnostics import diagnose_asset
 
 from services.alerts import notify
 
+from services.flow_data import enrich_row_with_flow, fetch_flow_snapshot
+
 
 
 log = logging.getLogger(__name__)
@@ -478,6 +480,16 @@ class Scanner:
 
 
 
+        # FASE 4: OI + CVD su watchlist crypto (sintesi frecce; diagnostica userà lo stesso snap)
+
+        self._set_progress("Crypto: OI/CVD su watchlist...")
+
+        for row in rows:
+
+            enrich_row_with_flow(row)
+
+
+
         ctx = {
 
             "regime": regime,
@@ -491,6 +503,8 @@ class Scanner:
             "all_with_setup": all_with_setup,
 
             "bench": btc,
+
+            "flow_by_symbol": {r["symbol"]: r.get("_flow_snap") for r in rows if r.get("_flow_snap")},
 
         }
 
@@ -742,11 +756,25 @@ class Scanner:
 
         out: dict[str, dict] = {}
 
+        flow_by = ctx.get("flow_by_symbol") or {}
+
         for sym in sym_set:
 
             if sym not in data:
 
                 continue
+
+            snap = flow_by.get(sym)
+
+            if market == "crypto" and snap is None and sym in wl_symbols:
+
+                try:
+
+                    snap = fetch_flow_snapshot(sym)
+
+                except Exception:
+
+                    snap = None
 
             out[sym] = diagnose_asset(
 
@@ -775,6 +803,8 @@ class Scanner:
                 ),
 
                 capped_out=sym in capped_symbols,
+
+                flow_snap=snap if market == "crypto" else None,
 
             )
 
@@ -880,6 +910,20 @@ class Scanner:
 
 
 
+        snap = None
+        if market == "crypto":
+            snap = (ctx.get("flow_by_symbol") or {}).get(symbol)
+            if snap is None:
+                for r in wl_rows:
+                    if r.get("symbol") == symbol and r.get("_flow_snap"):
+                        snap = r["_flow_snap"]
+                        break
+            if snap is None:
+                try:
+                    snap = fetch_flow_snapshot(symbol)
+                except Exception:
+                    snap = None
+
         return diagnose_asset(
 
             market,
@@ -907,6 +951,8 @@ class Scanner:
             ),
 
             capped_out=symbol in setup_symbols and symbol not in wl_symbols,
+
+            flow_snap=snap,
 
         )
 
@@ -984,7 +1030,12 @@ class Scanner:
 
             self.regimes[market] = regime
 
-            self.watchlist[market] = rows
+            # Non esporre snap interno nella state API
+            clean = []
+            for r in rows:
+                row = {k: v for k, v in r.items() if k != "_flow_snap"}
+                clean.append(row)
+            self.watchlist[market] = clean
 
             self.bearish_context[market] = bearish or []
 
