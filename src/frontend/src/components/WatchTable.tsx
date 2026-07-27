@@ -6,6 +6,20 @@ function fmt(x: number): string {
   return x.toPrecision(4);
 }
 
+function alignedTiming(r: WatchRow): string | null {
+  const hit = r.timing?.find((t) => t.aligned_with_daily);
+  return hit?.timeframe ?? null;
+}
+
+function timingTitle(r: WatchRow): string {
+  const parts: string[] = [`Ingresso watchlist: ${r.entry_tf ?? "D"}`];
+  if (r.tf_4h?.squeeze) parts.push(`4H squeeze: ${r.tf_4h.note ?? "sì"}`);
+  for (const t of r.timing ?? []) {
+    parts.push(t.note);
+  }
+  return parts.join("\n");
+}
+
 export function tvUrl(market: string, symbol: string): string {
   // Crypto: coppie spot Binance. Azioni: TradingView usa il punto (BRK.B), Yahoo il trattino.
   const tvSymbol = market === "crypto" ? `BINANCE:${symbol}` : symbol.replace("-", ".");
@@ -33,6 +47,7 @@ export default function WatchTable({
       <thead>
         <tr>
           <th>Asset</th>
+          <th>TF</th>
           <th>Dir</th>
           <th>Setup</th>
           <th>Stato</th>
@@ -61,6 +76,12 @@ export default function WatchTable({
               {r.warnings.length > 0 && (
                 <span title={r.warnings.join("\n")} style={{ marginLeft: 6 }}>⚠️</span>
               )}
+            </td>
+            <td>
+              <span className="badge setup" title={timingTitle(r)}>
+                {r.entry_tf ?? "D"}
+                {alignedTiming(r) ? ` · ${alignedTiming(r)}` : ""}
+              </span>
             </td>
             <td><span className={`badge ${r.direction}`}>{r.direction}</span></td>
             <td><span className="badge setup">Setup {r.setup}</span></td>

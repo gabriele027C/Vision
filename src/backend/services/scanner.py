@@ -25,11 +25,18 @@ from engine import regime as regime_mod
 
 from engine import screener
 
-from engine.diagnostics import diagnose_asset
+from engine.timeframes import (
+    TimingAlertGate,
+    attach_timing_to_row,
+    closed_klines,
+    detect_compression,
+)
 
 from engine.indicators import adr_pct
 
 from engine.setups import detect_setup_a, detect_setup_b, trigger_status_4h
+
+from engine.diagnostics import diagnose_asset
 
 from services.alerts import notify
 
@@ -115,6 +122,8 @@ class Scanner:
         self._prev_triggered: set[str] = set()
 
         self._market_ctx: dict[str, dict] = {}
+
+        self._timing_gate = TimingAlertGate()
 
 
 
@@ -308,15 +317,164 @@ class Scanner:
 
             if not df4.empty:
 
+                hist4 = df4.iloc[:-1]
+
                 row["status"] = trigger_status_4h(
 
-                    df4.iloc[:-1], row["direction"], row["entry_trigger"]
+                    hist4, row["direction"], row["entry_trigger"]
 
                 )
+
+                c4 = detect_compression(hist4, "long", "4H")
+
+                if c4:
+
+                    row["tf_4h"] = {
+
+                        "squeeze": True,
+
+                        "entry_trigger": c4["entry_trigger"],
+
+                        "stop": c4["stop"],
+
+                        "note": c4["note"],
+
+                    }
+
+                else:
+
+                    row["tf_4h"] = {"squeeze": False}
 
             fr = binance_client.funding_rate(row["symbol"])
 
             apply_funding_to_row(row, fr)
+
+
+
+        # FASE 3: entry 4H — candidati long senza setup daily ma con compressione 4H
+
+        wl_syms = {r["symbol"] for r in rows}
+
+        for cand in long_cands:
+
+            if cand["symbol"] in wl_syms or len(rows) >= WATCHLIST_SIZE:
+
+                continue
+
+            df4 = binance_client.klines(cand["symbol"], "4h", 200)
+
+            if df4.empty:
+
+                continue
+
+            c4 = detect_compression(closed_klines(df4), "long", "4H")
+
+            if c4 is None:
+
+                continue
+
+            row = {
+
+                "market": "crypto",
+
+                "symbol": cand["symbol"],
+
+                "direction": "long",
+
+                "rs_score": cand["rs_score"],
+
+                "rvol": cand["rvol"],
+
+                "last_price": cand["last_price"],
+
+                "setup": "B",
+
+                "entry_trigger": c4["entry_trigger"],
+
+                "stop": c4["stop"],
+
+                "atr": c4["atr"],
+
+                "status": "watch",
+
+                "note": c4["note"],
+
+                "funding": None,
+
+                "warnings": [],
+
+                "entry_tf": "4H",
+
+                "tf_4h": {
+
+                    "squeeze": True,
+
+                    "entry_trigger": c4["entry_trigger"],
+
+                    "stop": c4["stop"],
+
+                    "note": c4["note"],
+
+                },
+
+            }
+
+            fr = binance_client.funding_rate(cand["symbol"])
+
+            apply_funding_to_row(row, fr)
+
+            rows.append(row)
+
+            wl_syms.add(cand["symbol"])
+
+
+
+        # Timing 1H/15m solo su watchlist (nessun alert autonomo)
+
+        self._set_progress("Crypto: timing 1H/15m su watchlist...")
+
+        for row in rows:
+
+            row.setdefault("entry_tf", "D")
+
+            lower: dict = {}
+
+            for tf, interval in (("1H", "1h"), ("15m", "15m")):
+
+                raw = binance_client.klines(row["symbol"], interval, 300)
+
+                if not raw.empty:
+
+                    lower[tf] = raw
+
+            timing = attach_timing_to_row(row, lower, direction="long")
+
+            row["timing"] = timing
+
+            for t in timing:
+
+                if not t.get("aligned_with_daily"):
+
+                    continue
+
+                if not self._timing_gate.allow(row["symbol"]):
+
+                    break
+
+                notify(
+
+                    "crypto",
+
+                    row["symbol"],
+
+                    f"{row['symbol']} timing: compressione {t['timeframe']} sopra "
+
+                    f"livello daily {row['entry_trigger']} "
+                    f"(rottura {t['entry_trigger']}, invalidazione {t['stop']})",
+
+                )
+
+                break  # una sola notifica timing per asset in questo scan
 
 
 

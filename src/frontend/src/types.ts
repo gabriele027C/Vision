@@ -7,6 +7,14 @@ export interface Regime {
   detail: Record<string, string | number | null>;
 }
 
+export interface TimingInfo {
+  timeframe: string;
+  entry_trigger: number;
+  stop: number;
+  note: string;
+  aligned_with_daily?: boolean;
+}
+
 export interface WatchRow {
   market: "crypto" | "stocks";
   symbol: string;
@@ -22,6 +30,10 @@ export interface WatchRow {
   note: string;
   funding: number | null;
   warnings: string[];
+  /** TF di ingresso in watchlist (D o 4H). 1H/15m sono solo timing. */
+  entry_tf?: string;
+  tf_4h?: { squeeze: boolean; entry_trigger?: number; stop?: number; note?: string };
+  timing?: TimingInfo[];
 }
 
 export interface Alert {

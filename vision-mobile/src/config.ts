@@ -52,6 +52,24 @@ export const MARKET_PARAMS: Record<"crypto" | "stocks", MarketParams> = {
   },
 };
 
+/** FASE 3 — IPOTESI NON VALIDATE. Invalidazione più ampia sui TF bassi (rumore/costi). */
+export interface TfParams {
+  RANGE_BARS: number;
+  SQUEEZE_LOOKBACK: number;
+  INVALIDATION_ATR: number;
+  MIN_BARS: number;
+  BINANCE_INTERVAL: string;
+}
+export const TF_PARAMS: Record<"D" | "4H" | "1H" | "15m", TfParams> = {
+  D: { RANGE_BARS: 15, SQUEEZE_LOOKBACK: 60, INVALIDATION_ATR: 1.5, MIN_BARS: 220, BINANCE_INTERVAL: "1d" },
+  "4H": { RANGE_BARS: 30, SQUEEZE_LOOKBACK: 90, INVALIDATION_ATR: 1.75, MIN_BARS: 120, BINANCE_INTERVAL: "4h" },
+  "1H": { RANGE_BARS: 40, SQUEEZE_LOOKBACK: 120, INVALIDATION_ATR: 2.0, MIN_BARS: 160, BINANCE_INTERVAL: "1h" },
+  "15m": { RANGE_BARS: 48, SQUEEZE_LOOKBACK: 144, INVALIDATION_ATR: 2.5, MIN_BARS: 200, BINANCE_INTERVAL: "15m" },
+};
+export const WATCHLIST_ENTRY_TFS = ["D", "4H"] as const;
+export const TIMING_TFS = ["1H", "15m"] as const;
+export const TIMING_ALERT_COOLDOWN_S = 4 * 3600;
+
 // Default settings utente
 export const DEFAULT_SETTINGS = {
   capital: 4000.0,
