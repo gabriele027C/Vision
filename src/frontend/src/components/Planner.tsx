@@ -58,21 +58,34 @@ export default function Planner({
       return;
     }
     let cancelled = false;
+    const funding =
+      market === "crypto"
+        ? state?.watchlist?.crypto?.find((r) => r.symbol === symbol)?.funding ?? null
+        : null;
     api
-      .sizing(e, s, halfSize)
+      .sizing(e, s, halfSize, {
+        direction,
+        market,
+        funding_est: funding,
+        days_held_est: market === "crypto" ? 3 : 0,
+      })
       .then((r) => !cancelled && (setSizing(r), setSizingError(null)))
       .catch((err) => !cancelled && (setSizing(null), setSizingError(err.message)));
     return () => {
       cancelled = true;
     };
-  }, [entry, stop, halfSize]);
+  }, [entry, stop, halfSize, direction, market, symbol, state]);
 
   const allChecked = checks.every(Boolean);
   const target2r = sizing
     ? direction === "long"
-      ? sizing.target_2r_long
-      : sizing.target_2r_short
+      ? (sizing.target_2r_net_long ?? sizing.target_2r_long)
+      : (sizing.target_2r_net_short ?? sizing.target_2r_short)
     : null;
+  const currentFunding =
+    market === "crypto"
+      ? state?.watchlist?.crypto?.find((r) => r.symbol === symbol)?.funding ?? null
+      : null;
 
   const registerTrade = async () => {
     if (!sizing) return;
@@ -123,35 +136,56 @@ export default function Planner({
         </div>
         <div className="grid grid-2">
           <label className="field">
-            Prezzo di entrata (trigger)
+            Prezzo di entrata (livello di rottura)
             <input type="number" step="any" value={entry} onChange={(e) => setEntry(e.target.value)} />
           </label>
           <label className="field">
-            Stop loss
+            Invalidazione
             <input type="number" step="any" value={stop} onChange={(e) => setStop(e.target.value)} />
           </label>
         </div>
 
         {halfSize && (
           <div className="muted" style={{ color: "var(--yellow)", marginBottom: 10 }}>
-            Regime misto: rischio dimezzato automaticamente (§2 della strategia).
+            Regime misto: rischio dimezzato automaticamente (contesto informativo).
           </div>
         )}
-        {sizingError && <div className="neg">{sizingError}</div>}
+        {sizingError && (
+          <div className="neg" style={{ marginBottom: 10 }}>
+            Blocco sizing: {sizingError}
+          </div>
+        )}
 
         {sizing && (
           <div className="grid grid-2" style={{ marginTop: 8 }}>
             <div className="card" style={{ background: "var(--bg)" }}>
-              <h3>Size da inserire su TradingView</h3>
+              <h3>Size per rischio {sizing.half_size ? "0.5%" : "1%"}</h3>
               <div className="big mono">{sizing.size_units}</div>
               <div className="muted">unità · nozionale ≈ {sizing.notional.toLocaleString("it-IT")} $</div>
+              <div className="mono" style={{ marginTop: 8 }}>
+                Leva implicita: {sizing.leverage ?? "—"}x
+                {sizing.leverage_capped ? " (cappata)" : ""}
+              </div>
+              {market === "crypto" && (
+                <div className="mono">
+                  Liquidazione stimata: {sizing.liq_price ?? "—"}
+                  {sizing.liq_safe === false ? " — BLOCCATA" : ""}
+                </div>
+              )}
             </div>
             <div className="card" style={{ background: "var(--bg)" }}>
-              <h3>Rischio / livelli</h3>
-              <div className="mono">Rischio: {sizing.risk_amount} € ({sizing.half_size ? "0.5%" : "1%"})</div>
-              <div className="mono">Distanza stop: {sizing.stop_distance_pct}%</div>
-              <div className="mono">Target 2R (chiudi 50%): {target2r}</div>
-              <div className="mono">A +1R → stop a breakeven</div>
+              <h3>Rischio / costi</h3>
+              <div className="mono">Rischio: {sizing.risk_amount} $</div>
+              <div className="mono">Distanza invalidazione: {sizing.stop_distance_pct}%</div>
+              <div className="mono">Costi RT: {sizing.round_trip_cost ?? "—"} $ ({sizing.cost_r ?? "—"} R)</div>
+              <div className="mono">2R netto dopo costi: {sizing.net_2r_after_costs ?? "—"} R</div>
+              <div className="mono">Target 2R netto: {target2r}</div>
+              {market === "crypto" && (
+                <div className="mono">
+                  Funding corrente:{" "}
+                  {currentFunding == null ? "n/d" : `${(currentFunding * 100).toFixed(4)}% / 8h`}
+                </div>
+              )}
             </div>
           </div>
         )}

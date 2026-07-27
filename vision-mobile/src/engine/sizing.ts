@@ -4,6 +4,7 @@ import type { SizingResult } from "./types";
 export const CRYPTO_MAX_LEVERAGE = 5.0;
 export const STOCKS_MAX_LEVERAGE = 2.0; // margine Reg-T
 export const DEFAULT_TAKER_FEE = 0.00055; // 0.055% per lato
+export const DEFAULT_FUNDING_DAILY = 0.0003;
 
 function round(x: number, decimals: number): number {
   const f = 10 ** decimals;
@@ -19,7 +20,9 @@ export function positionSize(
   direction: "long" | "short" | null = null,
   maxLeverage: number | null = null,
   takerFee: number = DEFAULT_TAKER_FEE,
-  market: "crypto" | "stocks" = "crypto"
+  market: "crypto" | "stocks" = "crypto",
+  fundingEst: number | null = null,
+  daysHeldEst = 0
 ): SizingResult {
   let riskAmount = capital * (riskPct / 100);
   if (halfSize) riskAmount /= 2;
@@ -59,13 +62,20 @@ export function positionSize(
       return {
         error:
           `Stop (${stop}) oltre il prezzo di liquidazione stimato ` +
-          `(${liqPrice.toPrecision(6)}) a leva ${leverage.toFixed(2)}x: la posizione ` +
+          `(${liqPrice!.toPrecision(6)}) a leva ${leverage.toFixed(2)}x: la posizione ` +
           `verrebbe liquidata prima dello stop. Riduci la leva o avvicina lo stop.`,
+        liq_price: round(liqPrice!, 6),
+        leverage: round(leverage, 2),
+        liq_safe: false,
       };
     }
   }
 
-  const roundTripCost = 2 * takerFee * notional;
+  const feeRt = 2 * takerFee * notional;
+  const fundRate = fundingEst ?? (market === "crypto" ? DEFAULT_FUNDING_DAILY : 0);
+  const fundingCost = Math.abs(fundRate) * notional * Math.max(daysHeldEst, 0);
+  const roundTripCost = feeRt + fundingCost;
+  const costR = riskAmount > 0 ? roundTripCost / riskAmount : 0;
   const costPerUnit = sizeUnits > 0 ? roundTripCost / sizeUnits : 0;
 
   return {
@@ -84,8 +94,15 @@ export function positionSize(
     leverage_capped: leverageCapped,
     liq_price: liqPrice != null ? round(liqPrice, 6) : null,
     liq_safe: liqSafe,
+    taker_fee: takerFee,
+    funding_est: fundRate,
+    days_held_est: daysHeldEst,
+    fee_round_trip: round(feeRt, 4),
+    funding_cost_est: round(fundingCost, 4),
     round_trip_cost: round(roundTripCost, 4),
+    cost_r: round(costR, 4),
     target_2r_net_long: round(entry + 2 * distance + costPerUnit, 6),
     target_2r_net_short: round(entry - 2 * distance - costPerUnit, 6),
+    net_2r_after_costs: round(2 - costR, 4),
   };
 }

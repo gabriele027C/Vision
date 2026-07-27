@@ -53,6 +53,23 @@ export interface Sizing {
   half_size: boolean;
   target_2r_long: number;
   target_2r_short: number;
+  direction?: "long" | "short";
+  market?: "crypto" | "stocks";
+  leverage?: number;
+  max_leverage?: number;
+  leverage_capped?: boolean;
+  liq_price?: number | null;
+  liq_safe?: boolean;
+  taker_fee?: number;
+  funding_est?: number;
+  days_held_est?: number;
+  fee_round_trip?: number;
+  funding_cost_est?: number;
+  round_trip_cost?: number;
+  cost_r?: number;
+  target_2r_net_long?: number;
+  target_2r_net_short?: number;
+  net_2r_after_costs?: number;
 }
 
 export interface Trade {

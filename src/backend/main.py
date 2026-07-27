@@ -98,12 +98,20 @@ class SizingRequest(BaseModel):
     entry: float = Field(gt=0)
     stop: float = Field(gt=0)
     half_size: bool = False
+    direction: str | None = None
+    market: str = "crypto"
+    funding_est: float | None = None
+    days_held_est: float = 0.0
 
 
 @app.post("/api/sizing")
 def calc_sizing(req: SizingRequest):
     s = database.get_settings()
-    result = position_size(s["capital"], s["risk_pct"], req.entry, req.stop, req.half_size)
+    result = position_size(
+        s["capital"], s["risk_pct"], req.entry, req.stop, req.half_size,
+        direction=req.direction, market=req.market,
+        funding_est=req.funding_est, days_held_est=req.days_held_est,
+    )
     if "error" in result:
         raise HTTPException(400, result["error"])
     return result

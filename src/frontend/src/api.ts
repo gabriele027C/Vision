@@ -16,10 +16,28 @@ export const api = {
   state: () => http<AppState>("/api/state"),
   scan: () => http<{ started: boolean }>("/api/scan", { method: "POST" }),
   readAlerts: () => http("/api/alerts/read", { method: "POST" }),
-  sizing: (entry: number, stop: number, half_size: boolean) =>
+  sizing: (
+    entry: number,
+    stop: number,
+    half_size: boolean,
+    opts?: {
+      direction?: string;
+      market?: string;
+      funding_est?: number | null;
+      days_held_est?: number;
+    }
+  ) =>
     http<Sizing>("/api/sizing", {
       method: "POST",
-      body: JSON.stringify({ entry, stop, half_size }),
+      body: JSON.stringify({
+        entry,
+        stop,
+        half_size,
+        direction: opts?.direction ?? null,
+        market: opts?.market ?? "crypto",
+        funding_est: opts?.funding_est ?? null,
+        days_held_est: opts?.days_held_est ?? 0,
+      }),
     }),
   trades: () => http<Trade[]>("/api/trades"),
   createTrade: (t: Partial<Trade>) =>

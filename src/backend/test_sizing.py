@@ -128,6 +128,16 @@ def test_zero_fee_net_equals_gross():
     assert r["target_2r_net_short"] == r["target_2r_short"]
 
 
+def test_costs_reduce_net_2r():
+    r = position_size(4000, 1.0, 100.0, 95.0, market="crypto", days_held_est=3)
+    assert "error" not in r
+    assert r["cost_r"] > 0
+    assert r["net_2r_after_costs"] < 2.0
+    assert r["net_2r_after_costs"] == round(2.0 - r["cost_r"], 4)
+    assert r["funding_cost_est"] > 0
+    assert r["round_trip_cost"] == round(r["fee_round_trip"] + r["funding_cost_est"], 4)
+
+
 def test_half_size_halves_risk():
     full = position_size(4000, 1.0, 100.0, 95.0, False)
     half = position_size(4000, 1.0, 100.0, 95.0, True)

@@ -4,7 +4,7 @@ size = rischio in valuta / distanza dallo stop, poi:
 - cap di leva (crypto 5x default, stocks 2x Reg-T);
 - per crypto: prezzo di liquidazione approssimato e verifica che lo stop
   scatti PRIMA della liquidazione (altrimenti errore bloccante);
-- costi round-trip taker e target 2R al netto dei costi.
+- costi round-trip taker (+ funding stimato opzionale) e target 2R al netto.
 
 La firma resta retrocompatibile: i vecchi chiamanti
 position_size(capital, risk_pct, entry, stop, half_size) continuano a
@@ -14,6 +14,7 @@ funzionare (direction viene inferita dalla posizione dello stop).
 CRYPTO_MAX_LEVERAGE = 5.0
 STOCKS_MAX_LEVERAGE = 2.0  # margine Reg-T
 DEFAULT_TAKER_FEE = 0.00055  # 0.055% per lato (taker Bybit/Binance futures)
+DEFAULT_FUNDING_DAILY = 0.0003  # stima 0.01%/8h * 3
 
 
 def position_size(
@@ -26,7 +27,15 @@ def position_size(
     max_leverage: float | None = None,
     taker_fee: float = DEFAULT_TAKER_FEE,
     market: str = "crypto",
+    funding_est: float | None = None,
+    days_held_est: float = 0.0,
 ) -> dict:
+    """Calcola size, leva, liquidazione e costi.
+
+    funding_est: tasso funding giornaliero stimato (frazione). Se None e market
+    crypto, usa DEFAULT_FUNDING_DAILY. days_held_est: giorni stimati in posizione
+    per il costo funding (0 = solo fee taker round-trip).
+    """
     risk_amount = capital * (risk_pct / 100.0)
     if half_size:
         risk_amount /= 2.0
@@ -46,16 +55,12 @@ def position_size(
 
     leverage_capped = implied_leverage > max_leverage
     if leverage_capped:
-        # Cap del notional: la size scende e con lei il rischio effettivo.
         notional = max_leverage * capital
         size_units = notional / entry
         risk_amount = size_units * distance
 
     leverage = notional / capital if capital > 0 else 0.0
 
-    # Liquidazione approssimata (cross ~ isolata senza maintenance margin):
-    # long liq = entry*(1 - 1/lev); short liq = entry*(1 + 1/lev).
-    # Con leva <= 1 il prezzo di liquidazione long è <= 0: mai raggiungibile.
     liq_price: float | None = None
     liq_safe = True
     if market == "crypto" and leverage > 0:
@@ -77,7 +82,12 @@ def position_size(
                 "liq_safe": False,
             }
 
-    round_trip_cost = 2.0 * taker_fee * notional
+    fee_rt = 2.0 * taker_fee * notional
+    if funding_est is None:
+        funding_est = DEFAULT_FUNDING_DAILY if market == "crypto" else 0.0
+    funding_cost = abs(funding_est) * notional * max(days_held_est, 0.0)
+    round_trip_cost = fee_rt + funding_cost
+    cost_r = round_trip_cost / risk_amount if risk_amount > 0 else 0.0
     cost_per_unit = round_trip_cost / size_units if size_units > 0 else 0.0
 
     return {
@@ -96,8 +106,15 @@ def position_size(
         "leverage_capped": leverage_capped,
         "liq_price": round(liq_price, 6) if liq_price is not None else None,
         "liq_safe": liq_safe,
+        "taker_fee": taker_fee,
+        "funding_est": funding_est,
+        "days_held_est": days_held_est,
+        "fee_round_trip": round(fee_rt, 4),
+        "funding_cost_est": round(funding_cost, 4),
         "round_trip_cost": round(round_trip_cost, 4),
+        "cost_r": round(cost_r, 4),
         # Prezzo necessario perché il trade renda 2R DOPO i costi round-trip.
         "target_2r_net_long": round(entry + 2 * distance + cost_per_unit, 6),
         "target_2r_net_short": round(entry - 2 * distance - cost_per_unit, 6),
+        "net_2r_after_costs": round(2.0 - cost_r, 4),
     }

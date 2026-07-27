@@ -69,13 +69,23 @@ export interface Sizing {
   leverage_capped: boolean;
   liq_price: number | null;
   liq_safe: boolean;
+  taker_fee?: number;
+  funding_est?: number;
+  days_held_est?: number;
+  fee_round_trip?: number;
+  funding_cost_est?: number;
   round_trip_cost: number;
+  cost_r?: number;
   target_2r_net_long: number;
   target_2r_net_short: number;
+  net_2r_after_costs?: number;
 }
 
 export interface SizingError {
   error: string;
+  liq_price?: number;
+  leverage?: number;
+  liq_safe?: boolean;
 }
 
 export type SizingResult = Sizing | SizingError;
