@@ -194,23 +194,28 @@ export function diagnoseScreener(
   if (rsScore == null) {
     results.push(fr("rs_score", "Forza relativa (RS)", "skip", { message: "RS non calcolabile" }));
   } else {
+    // FASE 2: RS ordina l'attenzione, non esclude. Fuori banda → warn (mai fail/blocker).
     const pct = Math.round(rsScore * 1000) / 10;
     if (direction === "long") {
-      const rsOk = rsScore >= RS_TOP_PERCENTILE;
+      const inBand = rsScore >= RS_TOP_PERCENTILE;
       results.push(
-        fr("rs_long", "RS top 20%", rsOk ? "pass" : "fail", {
+        fr("rs_long", "RS percentile (ranking)", inBand ? "pass" : "warn", {
           value: pct,
           threshold: RS_TOP_PERCENTILE * 100,
-          message: `RS ${pct}% — serve ≥${RS_TOP_PERCENTILE * 100}% per long`,
+          message: inBand
+            ? `RS ${pct}% — top ${Math.round((1 - RS_TOP_PERCENTILE) * 100)}%`
+            : `RS ${pct}% — sotto top ${Math.round((1 - RS_TOP_PERCENTILE) * 100)}%; non esclude (ordina attenzione)`,
         })
       );
     } else {
-      const rsOk = rsScore <= RS_BOTTOM_PERCENTILE;
+      const inBand = rsScore <= RS_BOTTOM_PERCENTILE;
       results.push(
-        fr("rs_short", "RS bottom 20%", rsOk ? "pass" : "fail", {
+        fr("rs_short", "RS percentile (ranking)", inBand ? "pass" : "warn", {
           value: pct,
           threshold: RS_BOTTOM_PERCENTILE * 100,
-          message: `RS ${pct}% — serve ≤${RS_BOTTOM_PERCENTILE * 100}% per short`,
+          message: inBand
+            ? `RS ${pct}% — bottom ${Math.round(RS_BOTTOM_PERCENTILE * 100)}%`
+            : `RS ${pct}% — sopra bottom ${Math.round(RS_BOTTOM_PERCENTILE * 100)}%; non esclude (ordina attenzione)`,
         })
       );
     }
@@ -411,11 +416,10 @@ function collectBlockers(
   if (opts.mixedSymbolWarn && blockers.length < 3) {
     blockers.push("Regime misto crypto — solo BTC/ETH ammessi come candidati");
   }
+  // rs_long / rs_short: informativi (ranking), non blocker.
   addFrom(
     screenerFilters,
     new Set([
-      "rs_long",
-      "rs_short",
       "trend_ema50",
       "screener_overall",
       "stock_price",

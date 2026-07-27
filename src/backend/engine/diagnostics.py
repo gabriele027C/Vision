@@ -204,29 +204,41 @@ def diagnose_screener(
             _fr("rs_score", "Forza relativa (RS)", "skip", message="RS non calcolabile")
         )
     else:
+        # FASE 2: RS ordina l'attenzione, non esclude. Fuori banda → warn informativo
+        # (come rvol_info), mai fail/blocker.
         pct = round(rs_score * 100, 1)
         if direction == "long":
-            rs_ok = rs_score >= RS_TOP_PERCENTILE
+            in_band = rs_score >= RS_TOP_PERCENTILE
             results.append(
                 _fr(
                     "rs_long",
-                    "RS top 20%",
-                    "pass" if rs_ok else "fail",
+                    "RS percentile (ranking)",
+                    "pass" if in_band else "warn",
                     value=pct,
                     threshold=RS_TOP_PERCENTILE * 100,
-                    message=f"RS {pct}% — serve ≥{RS_TOP_PERCENTILE * 100:.0f}% per long",
+                    message=(
+                        f"RS {pct}% — top {int((1 - RS_TOP_PERCENTILE) * 100)}% "
+                        if in_band
+                        else f"RS {pct}% — sotto top {int((1 - RS_TOP_PERCENTILE) * 100)}%; "
+                        f"non esclude (ordina attenzione)"
+                    ),
                 )
             )
         else:
-            rs_ok = rs_score <= RS_BOTTOM_PERCENTILE
+            in_band = rs_score <= RS_BOTTOM_PERCENTILE
             results.append(
                 _fr(
                     "rs_short",
-                    "RS bottom 20%",
-                    "pass" if rs_ok else "fail",
+                    "RS percentile (ranking)",
+                    "pass" if in_band else "warn",
                     value=pct,
                     threshold=RS_BOTTOM_PERCENTILE * 100,
-                    message=f"RS {pct}% — serve ≤{RS_BOTTOM_PERCENTILE * 100:.0f}% per short",
+                    message=(
+                        f"RS {pct}% — bottom {int(RS_BOTTOM_PERCENTILE * 100)}% "
+                        if in_band
+                        else f"RS {pct}% — sopra bottom {int(RS_BOTTOM_PERCENTILE * 100)}%; "
+                        f"non esclude (ordina attenzione)"
+                    ),
                 )
             )
 
@@ -469,9 +481,10 @@ def _collect_blockers(
     add_from(regime_filters, {"regime_halt", "regime_long", "regime_short"})
     if mixed_symbol_warn and len(blockers) < 3:
         blockers.append("Regime misto crypto — solo BTC/ETH ammessi come candidati")
+    # rs_long / rs_short: informativi (ranking), non blocker.
     add_from(
         screener_filters,
-        {"rs_long", "rs_short", "trend_ema50", "screener_overall", "stock_price", "stock_volume", "stock_adr"},
+        {"trend_ema50", "screener_overall", "stock_price", "stock_volume", "stock_adr"},
     )
     if not setup_a["eligible"] and not setup_b["eligible"]:
         for f in setup_a["filters"]:

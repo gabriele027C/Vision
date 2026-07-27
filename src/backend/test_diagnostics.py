@@ -76,9 +76,11 @@ def test_rs_borderline_long():
     df.iloc[-1, df.columns.get_loc("high")] = last * 1.01
     df.iloc[-1, df.columns.get_loc("low")] = last * 0.99
 
-    fail = diagnose_screener(df, 0.79, "long", True, False)
-    rs_f = next(f for f in fail if f["id"] == "rs_long")
-    assert rs_f["status"] == "fail"
+    # FASE 2: fuori banda → warn informativo (non fail / non blocker)
+    mid = diagnose_screener(df, 0.79, "long", True, False)
+    rs_m = next(f for f in mid if f["id"] == "rs_long")
+    assert rs_m["status"] == "warn"
+    assert "non esclude" in rs_m["message"]
 
     pass_ = diagnose_screener(df, 0.81, "long", True, False)
     rs_p = next(f for f in pass_ if f["id"] == "rs_long")
@@ -92,8 +94,8 @@ def test_rs_borderline_short():
     df.iloc[-1, df.columns.get_loc("high")] = last * 1.01
     df.iloc[-1, df.columns.get_loc("low")] = last * 0.99
 
-    fail = diagnose_screener(df, 0.21, "short", False, True)
-    assert next(f for f in fail if f["id"] == "rs_short")["status"] == "fail"
+    mid = diagnose_screener(df, 0.21, "short", False, True)
+    assert next(f for f in mid if f["id"] == "rs_short")["status"] == "warn"
 
     pass_ = diagnose_screener(df, 0.19, "short", False, True)
     assert next(f for f in pass_ if f["id"] == "rs_short")["status"] == "pass"
