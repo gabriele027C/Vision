@@ -578,11 +578,36 @@ def diagnose_asset(
 
     flow_filters: list = []
     flow: dict | None = None
+    scenarios: list = []
     if market == "crypto" and flow_snap is not None:
         from engine.flow import flow_filters_from_snapshot
+        from engine.playbook import active_scenarios, build_asset_state
 
         flow = flow_snap
         flow_filters = flow_filters_from_snapshot(flow_snap)
+        st = build_asset_state(
+            {
+                "direction": direction,
+                "funding": None,
+                "rvol": None,
+                "setup": best_setup,
+                "oi_state": flow_snap.get("oi_state"),
+                "cvd_state": flow_snap.get("cvd_state"),
+            },
+            flow=flow_snap,
+        )
+        scenarios = active_scenarios(st)
+    elif market == "stocks":
+        from engine.playbook import active_scenarios, build_asset_state
+
+        st = build_asset_state(
+            {
+                "direction": direction,
+                "rvol": None,
+                "setup": best_setup,
+            }
+        )
+        scenarios = active_scenarios(st)
 
     return {
         "market": market,
@@ -601,4 +626,5 @@ def diagnose_asset(
         "blockers": blockers,
         "flow": flow,
         "flow_filters": flow_filters,
+        "scenarios": scenarios,
     }

@@ -24,6 +24,7 @@ import type {
 import { notify } from "./alerts";
 import { enrichRowWithFlow } from "./flowData";
 import { attachConfluence, sortByConfluence } from "../engine/confluence";
+import { scenarioIdsForRow } from "../engine/playbook";
 
 const MAX_4H_CHECKS = 15;
 const DIAG_TOP_N = 30;
@@ -218,6 +219,9 @@ async function scanCrypto(): Promise<void> {
   }
 
   for (const row of rows) attachConfluence(row);
+  for (const row of rows) {
+    row.scenario_ids = scenarioIdsForRow(row);
+  }
   const ordered = sortByConfluence(rows);
 
   const ctx: MarketCtx = {

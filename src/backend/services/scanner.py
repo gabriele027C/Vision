@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from config import (
     FUNDING_BLOCK,
     FUNDING_EXTREME,
+    PLAYBOOK_IN_ALERTS,
     STOCK_MIN_ADR_PCT,
     STOCK_MIN_AVG_VOLUME,
     STOCK_MIN_PRICE,
@@ -43,6 +44,8 @@ from services.alerts import notify
 from services.flow_data import enrich_row_with_flow, fetch_flow_snapshot
 
 from engine.confluence import attach_confluence, sort_by_confluence
+
+from engine.playbook import primary_alert_scenario, scenario_ids_for_row
 
 
 
@@ -506,6 +509,8 @@ class Scanner:
 
             attach_confluence(row)
 
+            row["scenario_ids"] = scenario_ids_for_row(row, flow=row.get("_flow_snap"))
+
         rows = sort_by_confluence(rows)
 
 
@@ -643,6 +648,8 @@ class Scanner:
         for row in rows:
 
             attach_confluence(row)
+
+            row["scenario_ids"] = scenario_ids_for_row(row)
 
         rows = sort_by_confluence(rows)
 
@@ -1051,6 +1058,22 @@ class Scanner:
                     f"rottura {row['entry_trigger']}, invalidazione {row['stop']}, {fund_txt}",
 
                 )
+
+                if PLAYBOOK_IN_ALERTS:
+
+                    card = primary_alert_scenario(row, flow=row.get("_flow_snap"))
+
+                    if card and card.get("monitorare"):
+
+                        notify(
+
+                            market,
+
+                            row["symbol"],
+
+                            f"[scenario] {card['titolo']} — verifica: {card['monitorare'][0]}",
+
+                        )
 
             if row["status"] == "triggered":
 

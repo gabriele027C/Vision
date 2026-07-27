@@ -96,7 +96,14 @@ function SetupBadge({ ok }: { ok: boolean }) {
 
 function AssetCard({ asset }: { asset: AssetDiagnostics }) {
 
-  const [open, setOpen] = useState({ regime: true, screener: true, flow: true, a: false, b: false });
+  const [open, setOpen] = useState({
+    regime: true,
+    screener: true,
+    flow: true,
+    scenarios: true,
+    a: false,
+    b: false,
+  });
 
 
 
@@ -229,6 +236,54 @@ function AssetCard({ asset }: { asset: AssetDiagnostics }) {
             </>
 
           )}
+
+        </div>
+
+      )}
+
+
+
+      {(asset.scenarios?.length ?? 0) > 0 && (
+
+        <div className="diag-section">
+
+          <button type="button" className="diag-toggle" onClick={() => setOpen((o) => ({ ...o, scenarios: !o.scenarios }))}>
+
+            Scenari attivi ({asset.scenarios!.length}) {open.scenarios ? "▾" : "▸"}
+
+          </button>
+
+          {open.scenarios &&
+            asset.scenarios!.map((sc) => (
+              <div
+                key={sc.id}
+                className="card"
+                style={{
+                  marginTop: 8,
+                  borderLeft: sc.lato_operativo ? undefined : "3px solid var(--yellow)",
+                }}
+              >
+                <div className="row" style={{ gap: 8, alignItems: "center" }}>
+                  <strong>{sc.titolo}</strong>
+                  {!sc.lato_operativo && <span className="badge near">protezione</span>}
+                  <span className="muted mono">{sc.id}</span>
+                </div>
+                <p style={{ marginTop: 8 }}>{sc.lettura}</p>
+                <h4 className="muted">Monitorare</h4>
+                <ul className="checklist">
+                  {sc.monitorare.map((m, i) => (
+                    <li key={i}>
+                      <label>
+                        <input type="checkbox" /> {m}
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+                <p className="muted"><strong>Invalidazione:</strong> {sc.invalidazione}</p>
+                <p className="muted"><strong>Errore tipico:</strong> {sc.errore_tipico}</p>
+                <p className="muted" style={{ marginTop: 8, fontSize: 12 }}>{sc.footer}</p>
+              </div>
+            ))}
 
         </div>
 

@@ -255,6 +255,17 @@ export interface AssetDiagnostics {
     combo_message: string;
   } | null;
   flow_filters?: FilterResult[];
+  scenarios?: {
+    id: string;
+    famiglia: string;
+    titolo: string;
+    lettura: string;
+    monitorare: string[];
+    invalidazione: string;
+    errore_tipico: string;
+    lato_operativo: boolean;
+    footer: string;
+  }[];
 }
 
 export interface DiagnosticsResponse {

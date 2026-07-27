@@ -92,6 +92,23 @@ def get_symbol_diagnostic(market: str, symbol: str):
     return result
 
 
+# ---------- Playbook (FASE 5-BIS) ----------
+
+@app.get("/api/playbook")
+def get_playbook():
+    from engine.playbook import load_playbook
+    return load_playbook()
+
+
+@app.get("/api/playbook/checklist/{name}")
+def get_playbook_checklist(name: str):
+    from engine.playbook import universal_checklist
+    items = universal_checklist(name)
+    if not items:
+        raise HTTPException(404, f"checklist '{name}' non trovata")
+    return {"name": name, "items": items}
+
+
 # ---------- Sizing ----------
 
 class SizingRequest(BaseModel):

@@ -32,6 +32,8 @@ export interface WatchRow {
   funding: number | null;
   warnings: string[];
   entry_tf?: string;
+  tf_4h?: { squeeze?: boolean; entry_trigger?: number; stop?: number; note?: string };
+  timing?: { timeframe?: string; aligned_with_daily?: boolean; note?: string }[];
   oi_state?: "up" | "down" | "flat" | "collapse" | null;
   oi_arrow?: string | null;
   oi_delta_24h?: number | null;

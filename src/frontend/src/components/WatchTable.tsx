@@ -101,7 +101,18 @@ export default function WatchTable({
               {r.confluence != null ? r.confluence.toFixed(0) : "—"}
             </td>
             <td><span className={`badge ${r.direction}`}>{r.direction}</span></td>
-            <td><span className="badge setup">Setup {r.setup}</span></td>
+            <td>
+              <span className="badge setup">Setup {r.setup}</span>
+              {(r.scenario_ids?.length ?? 0) > 0 && (
+                <div style={{ marginTop: 4 }}>
+                  {r.scenario_ids!.slice(0, 3).map((id) => (
+                    <span key={id} className="badge watch" style={{ marginRight: 4, fontSize: 10 }} title={id}>
+                      {id}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </td>
             <td><span className={`badge ${r.status}`}>
               {r.status === "blocked" ? "veto funding" : r.status}
             </span></td>

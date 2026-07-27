@@ -153,7 +153,7 @@ export default function Planner({
       rvol_at_entry: parseOpt(rvolAtEntry),
       oi_at_entry: parseOpt(oiAtEntry),
       cvd_slope_at_entry: parseOpt(cvdSlope),
-      scenario_ids: [],
+      scenario_ids: prefill?.scenario_ids ?? [],
     });
     setSaved(`${symbol} registrato nel journal come trade aperto.`);
   };

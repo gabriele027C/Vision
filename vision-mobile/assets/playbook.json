@@ -1,0 +1,399 @@
+{
+  "version": 1,
+  "note": "Contenuti editabili. Ogni scheda è descrittiva: nessun linguaggio predittivo ammesso.",
+  "scenari": [
+    {
+      "id": "trend_nuovi_aggressori",
+      "famiglia": "A",
+      "titolo": "Trend con nuovi aggressori",
+      "trigger": {
+        "prezzo": "up",
+        "oi": "up",
+        "cvd": "up"
+      },
+      "lettura": "Movimento alimentato da posizioni nuove aperte in acquisto aggressivo: la partecipazione conferma il trend. Scenario sano ma affollato.",
+      "monitorare": [
+        "Pullback tiene sopra EMA20/zona EMA20-50 con CVD che rallenta ma non inverte",
+        "Funding non in accelerazione verso l'estremo (rischio carry + long squeeze)",
+        "Su 1H/15m: compressione sopra supporto, non estensione verticale",
+        "OI sale insieme al prezzo, non con prezzo fermo (altrimenti vedi molla_carica)"
+      ],
+      "invalidazione": "OI sale ma il prezzo smette di seguirlo, o CVD inverte sul massimo: possibile distribuzione.",
+      "errore_tipico": "Inseguire l'estensione per paura di perdere il treno: il rischio è salire dove chi è entrato prima scarica.",
+      "lato_operativo": true,
+      "footer": "Scenario descrittivo — nessun edge statistico dimostrato. La decisione e il rischio restano tuoi: size dal pannello rischio."
+    },
+    {
+      "id": "short_covering",
+      "famiglia": "A",
+      "titolo": "Short covering",
+      "trigger": {
+        "prezzo": "up",
+        "oi": "down"
+      },
+      "lettura": "Il prezzo sale perché gli short chiudono, non per domanda nuova: rally veloce, base fragile.",
+      "monitorare": [
+        "Attendere che l'OI smetta di scendere: solo lì si vede se esiste domanda vera",
+        "Se il rally regge a OI stabilizzato con CVD positivo, riclassificare in trend_nuovi_aggressori",
+        "Confronto spot vs perp se disponibile: spot in acquisto rende il movimento più solido",
+        "Prima resistenza strutturale daily sopra la testa: i covering rally spesso muoiono lì"
+      ],
+      "invalidazione": "Stallo del prezzo con OI ormai piatto: spinta tecnica esaurita.",
+      "errore_tipico": "Scambiare un rally di ricoperture per inizio di trend e comprarne la parte finale.",
+      "lato_operativo": true,
+      "footer": "Scenario descrittivo — nessun edge statistico dimostrato. La decisione e il rischio restano tuoi: size dal pannello rischio."
+    },
+    {
+      "id": "trend_senza_aggressori",
+      "famiglia": "A",
+      "titolo": "Salita senza partecipazione",
+      "trigger": {
+        "prezzo": "up",
+        "oi": "flat",
+        "cvd": [
+          "flat",
+          "down"
+        ]
+      },
+      "lettura": "Il prezzo sale senza posizioni nuove né flusso aggressivo: vuoto d'offerta, tipico di orari illiquidi. Regge finché non incontra offerta vera.",
+      "monitorare": [
+        "RVOL della fascia oraria: salita con volumi molto sotto media è fragile",
+        "Reazione al primo aumento di volume: assorbe o cede?",
+        "Evitare ingressi in orari morti sulla sola forza apparente del grafico"
+      ],
+      "invalidazione": "Primo impatto con volume in vendita che il prezzo non assorbe.",
+      "errore_tipico": "Leggere la salita 'pulita' come forza: senza partecipazione è fragilità.",
+      "lato_operativo": true,
+      "footer": "Scenario descrittivo — nessun edge statistico dimostrato. La decisione e il rischio restano tuoi: size dal pannello rischio."
+    },
+    {
+      "id": "divergenza_aggressori",
+      "famiglia": "A",
+      "titolo": "Divergenza prezzo/CVD",
+      "trigger": {
+        "prezzo": "up",
+        "cvd": "down"
+      },
+      "lettura": "Nuovi massimi con aggressori netti in vendita: qualcuno usa la salita per uscire. Divergenza da fine gamba, che però può durare.",
+      "monitorare": [
+        "Nessun ingresso nuovo con divergenza attiva: attendere risoluzione (CVD riconferma o ritraccio+base)",
+        "In posizione: stringere la gestione, non aggiungere",
+        "Peso multi-TF: divergenza solo 15m pesa poco, su 4H/D pesa"
+      ],
+      "invalidazione": "CVD torna a salire coi nuovi massimi: divergenza rientrata.",
+      "errore_tipico": "Ignorarla del tutto, o usarla per shortare (lato non operativo, e nei trend forti le divergenze falliscono spesso).",
+      "lato_operativo": true,
+      "footer": "Scenario descrittivo — nessun edge statistico dimostrato. La decisione e il rischio restano tuoi: size dal pannello rischio."
+    },
+    {
+      "id": "possibile_assorbimento",
+      "famiglia": "B",
+      "titolo": "Possibile assorbimento",
+      "trigger": {
+        "prezzo": "flat",
+        "cvd": "up"
+      },
+      "lettura": "Il flusso compra ma il prezzo non sale ancora. Se è accumulo, la conferma è SOLO la rottura del range e il mancato rientro.",
+      "monitorare": [
+        "Sequenza rompe-ritesta-tiene: è quella che trasforma l'ipotesi in fatto",
+        "RVOL sulla barra di rottura: rottura senza volume è sospetta",
+        "Posizione del range nella struttura daily: sopra supporto maggiore vale di più",
+        "OI durante il laterale: OI in salita a prezzo fermo aggiunge tensione"
+      ],
+      "invalidazione": "Cedimento del minimo del range con CVD che inverte: era distribuzione.",
+      "errore_tipico": "Anticipare la rottura posizionandosi dentro il range: lì non c'è conferma, c'è solo un'idea che piace.",
+      "lato_operativo": true,
+      "footer": "Scenario descrittivo — nessun edge statistico dimostrato. La decisione e il rischio restano tuoi: size dal pannello rischio."
+    },
+    {
+      "id": "possibile_distribuzione",
+      "famiglia": "B",
+      "titolo": "Possibile distribuzione",
+      "trigger": {
+        "prezzo": "flat",
+        "cvd": "down"
+      },
+      "lettura": "Il prezzo tiene ma il flusso aggressivo vende. Scheda di protezione: nessun ingresso long.",
+      "monitorare": [
+        "Con long aperti: il minimo del range è livello di sorveglianza attiva",
+        "Se rompe al rialzo nonostante CVD negativo: non inseguire, pretendere il ritest"
+      ],
+      "invalidazione": "CVD torna positivo con prezzo che accetta la parte alta del range.",
+      "errore_tipico": "Comprare 'lo sconto' dentro un laterale dove il flusso vende.",
+      "lato_operativo": false,
+      "footer": "Scenario descrittivo — nessun edge statistico dimostrato. La decisione e il rischio restano tuoi: size dal pannello rischio."
+    },
+    {
+      "id": "molla_carica",
+      "famiglia": "B",
+      "titolo": "Molla carica (OI in crescita su prezzo fermo)",
+      "trigger": {
+        "prezzo": "flat",
+        "oi": "up"
+      },
+      "lettura": "Le due parti si caricano dentro il range: alla rottura, il lato sbagliato alimenta il movimento. Direzione ignota per definizione.",
+      "monitorare": [
+        "NESSUN ingresso prima della rottura: è un'allerta di volatilità, non di direzione",
+        "Preparare livelli sopra/sotto con invalidazione già calcolata dal pannello rischio",
+        "Funding come indizio di sbilanciamento del posizionamento",
+        "Squeeze Bollinger su D/4H rafforza la lettura"
+      ],
+      "invalidazione": "OI che si sgonfia senza rottura: tensione scaricata in silenzio.",
+      "errore_tipico": "Scommettere sulla direzione della rottura prima della rottura.",
+      "lato_operativo": true,
+      "footer": "Scenario descrittivo — nessun edge statistico dimostrato. La decisione e il rischio restano tuoi: size dal pannello rischio."
+    },
+    {
+      "id": "squeeze_multi_tf",
+      "famiglia": "B",
+      "titolo": "Compressione multi-timeframe",
+      "trigger": {
+        "squeeze_d_or_4h": true,
+        "squeeze_1h_or_15m": true
+      },
+      "lettura": "Bassa volatilità annidata su più TF: massima attenzione, minima azione.",
+      "monitorare": [
+        "Il livello del TF superiore comanda: rotture dei TF bassi dentro il range daily sono rumore",
+        "CVD e OI durante la compressione per capire chi si posiziona",
+        "RVOL alla rottura: fine squeeze senza volume è il falso segnale per eccellenza"
+      ],
+      "invalidazione": "Espansione già avvenuta (range barra >= 2x ATR): squeeze finito, non inseguire.",
+      "errore_tipico": "Farsi triggerare dal 15m mentre il daily non ha ancora deciso.",
+      "lato_operativo": true,
+      "footer": "Scenario descrittivo — nessun edge statistico dimostrato. La decisione e il rischio restano tuoi: size dal pannello rischio."
+    },
+    {
+      "id": "rottura_con_partecipazione",
+      "famiglia": "C",
+      "titolo": "Rottura con partecipazione",
+      "trigger": {
+        "evento": "breakout",
+        "cvd": "up",
+        "rvol": "high"
+      },
+      "lettura": "Rottura con aggressori, volume e posizioni nuove: leggibile, non sicura.",
+      "monitorare": [
+        "Chiusura della barra del TF oltre il livello: il tocco intrabarra non basta",
+        "In alternativa alla rottura: ritest che tiene (ritest > rincorsa)",
+        "Distanza dall'invalidazione in ATR del TF: se il rischio è troppo ampio, il trade non c'è",
+        "OI post-rottura: in salita col prezzo conferma; piatto = ancora da dimostrare"
+      ],
+      "invalidazione": "Rientro nel range entro poche barre: rottura fallita, informazione contraria forte.",
+      "errore_tipico": "Usare la qualità dello scenario come permesso per aumentare il size: 1%, sempre.",
+      "lato_operativo": true,
+      "footer": "Scenario descrittivo — nessun edge statistico dimostrato. La decisione e il rischio restano tuoi: size dal pannello rischio."
+    },
+    {
+      "id": "rottura_senza_aggressori",
+      "famiglia": "C",
+      "titolo": "Rottura senza aggressori",
+      "trigger": {
+        "evento": "breakout",
+        "cvd": "flat",
+        "rvol": "low"
+      },
+      "lettura": "Il prezzo esce dal range ma nessuno lo spinge: candidata trappola. È il pattern che distruggeva il vecchio Setup B.",
+      "monitorare": [
+        "NON entrare sulla rottura: chiusura oltre il livello E ritest che tiene, in quest'ordine",
+        "OI in salita mentre il prezzo rientra = trappola sui late buyer: massima allerta",
+        "Se arrivano volume e CVD: riclassificare in rottura_con_partecipazione"
+      ],
+      "invalidazione": "Arrivo di partecipazione reale che converte la rottura (favorevole).",
+      "errore_tipico": "FOMO sulla rottura 'perché il livello era importante': è ciò che rende profittevole la trappola.",
+      "lato_operativo": true,
+      "footer": "Scenario descrittivo — nessun edge statistico dimostrato. La decisione e il rischio restano tuoi: size dal pannello rischio."
+    },
+    {
+      "id": "rottura_fallita",
+      "famiglia": "C",
+      "titolo": "Rottura fallita",
+      "trigger": {
+        "evento": "failed_breakout"
+      },
+      "lettura": "Il mercato ha testato la direzione e l'ha rifiutata: i comprati sulla rottura sono intrappolati.",
+      "monitorare": [
+        "Se dentro: il rientro nel range È il fallimento della tesi, uscire non è opinabile",
+        "Nessun re-ingresso immediato: il fallimento long spesso genera l'escursione opposta",
+        "L'asset resta in watchlist: un range che ha bruciato una rottura è più leggibile"
+      ],
+      "invalidazione": "—",
+      "errore_tipico": "Mediare o 'dare un'altra possibilità' al trade fallito.",
+      "lato_operativo": false,
+      "footer": "Scenario descrittivo — nessun edge statistico dimostrato. La decisione e il rischio restano tuoi: size dal pannello rischio."
+    },
+    {
+      "id": "gap_spike",
+      "famiglia": "C",
+      "titolo": "Gap/spike oltre il livello",
+      "trigger": {
+        "evento": "range_bar_ge_2atr"
+      },
+      "lettura": "Il movimento atteso è avvenuto in una barra sola: rapporto rischio/struttura saltato. Rinuncia attiva.",
+      "monitorare": [
+        "Nessun ingresso in estensione: invalidazione strutturale a distanza proibitiva",
+        "Attendere una NUOVA base sopra il livello (compressione 1H/15m): quella è un trade, lo spike no"
+      ],
+      "invalidazione": "—",
+      "errore_tipico": "'Ormai è partita, entro con stop stretto sotto un livello qualsiasi': stop tecnico inesistente = trade inesistente.",
+      "lato_operativo": false,
+      "footer": "Scenario descrittivo — nessun edge statistico dimostrato. La decisione e il rischio restano tuoi: size dal pannello rischio."
+    },
+    {
+      "id": "pullback_ordinato",
+      "famiglia": "D",
+      "titolo": "Pullback ordinato nel trend",
+      "trigger": {
+        "trend": "up_aligned",
+        "evento": "pullback",
+        "volume": "contracting"
+      },
+      "lettura": "Pausa fisiologica del trend con volumi in contrazione: contesto leggibile, non promessa (ex Setup A, degradato onestamente).",
+      "monitorare": [
+        "CVD nel pullback: rallenta, non inverte con forza (altrimenti vedi pullback_con_flusso_contrario)",
+        "Segnale di ripartenza sul TF operativo (ripresa sopra massimo minore con RVOL): niente ingressi 'al volo nella zona'",
+        "Struttura del ritracciamento: dolce e ordinata, non verticale e impulsiva",
+        "Funding raffreddato rispetto al picco della gamba precedente"
+      ],
+      "invalidazione": "Perdita della zona EMA50 in chiusura del TF, o CVD che inverte stabilmente.",
+      "errore_tipico": "Comprare il primo tocco della EMA senza segno di ripartenza: da pullback a coltello.",
+      "lato_operativo": true,
+      "footer": "Scenario descrittivo — nessun edge statistico dimostrato. La decisione e il rischio restano tuoi: size dal pannello rischio."
+    },
+    {
+      "id": "pullback_flusso_contrario",
+      "famiglia": "D",
+      "titolo": "Pullback con flusso contrario",
+      "trigger": {
+        "trend": "up_aligned",
+        "evento": "pullback",
+        "cvd": "down_strong"
+      },
+      "lettura": "Il ritracciamento ha aggressori in vendita o short nuovi: non è ancora la pausa fisiologica.",
+      "monitorare": [
+        "Dove si ferma: tenuta di EMA50/base CON esaurimento del CVD in vendita riabilita il pullback ordinato",
+        "OI in salita mentre scende = short in accumulo: la loro ricopertura sarà il primo rally, da non scambiare per ripartenza"
+      ],
+      "invalidazione": "Esaurimento del flusso in vendita su supporto strutturale (favorevole): passare alla scheda pullback_ordinato.",
+      "errore_tipico": "'È il solito pullback, compro': mentre accade, il flusso è l'unico testimone attendibile.",
+      "lato_operativo": false,
+      "footer": "Scenario descrittivo — nessun edge statistico dimostrato. La decisione e il rischio restano tuoi: size dal pannello rischio."
+    },
+    {
+      "id": "carry_avverso",
+      "famiglia": "E",
+      "titolo": "Funding estremo contro il lato",
+      "trigger": {
+        "funding": "extreme_against_long"
+      },
+      "lettura": "Long qui costa carry strutturale e ti mette dal lato affollato: il long squeeze punisce questa folla. Badge rosso in watchlist.",
+      "monitorare": [
+        "Nulla per un ingresso: attendere normalizzazione, o accettare esplicitamente il costo annotandolo nel journal",
+        "In posizione: il funding prolungato erode l'R, ricalcolare il target netto"
+      ],
+      "invalidazione": "Normalizzazione del funding.",
+      "errore_tipico": "'Il grafico è bello, il funding non conta': il funding è il prezzo del consenso.",
+      "lato_operativo": false,
+      "footer": "Scenario descrittivo — nessun edge statistico dimostrato. La decisione e il rischio restano tuoi: size dal pannello rischio."
+    },
+    {
+      "id": "funding_negativo_trend_su",
+      "famiglia": "E",
+      "titolo": "Funding negativo in trend rialzista",
+      "trigger": {
+        "prezzo": "up",
+        "funding": "negative"
+      },
+      "lettura": "Il mercato sale mentre i perp pagano per stare short: folla contro il movimento, carry a favore del long. Vento a favore, non motore.",
+      "monitorare": [
+        "Valgono le checklist di trend_nuovi_aggressori/pullback_ordinato: il funding accompagna, non sostituisce",
+        "Normalizzazione del funding verso l'alto durante la salita = vantaggio in consumo"
+      ],
+      "invalidazione": "Funding tornato positivo ed esteso.",
+      "errore_tipico": "Trattare il funding negativo come segnale d'ingresso autonomo.",
+      "lato_operativo": true,
+      "footer": "Scenario descrittivo — nessun edge statistico dimostrato. La decisione e il rischio restano tuoi: size dal pannello rischio."
+    },
+    {
+      "id": "flip_funding",
+      "famiglia": "E",
+      "titolo": "Flip del funding",
+      "trigger": {
+        "funding": "sign_flip_recent"
+      },
+      "lettura": "Posizionamento in riequilibrio, spesso durante/dopo squeeze. Transizione: lettura precedente scaduta, nuova non ancora scritta.",
+      "monitorare": [
+        "Sospendere le conclusioni per alcune barre 4H, poi riclassificare con OI/CVD/struttura"
+      ],
+      "invalidazione": "—",
+      "errore_tipico": "Reagire al flip come fosse un segnale, in una fase per definizione rumorosa.",
+      "lato_operativo": false,
+      "footer": "Scenario descrittivo — nessun edge statistico dimostrato. La decisione e il rischio restano tuoi: size dal pannello rischio."
+    },
+    {
+      "id": "contesto_ribassista",
+      "famiglia": "F",
+      "titolo": "Tendenza ribassista strutturata",
+      "trigger": {
+        "trend": "down_aligned"
+      },
+      "lettura": "Il lato long non ha contesto. Vision non opera short: protezione di capitale e attenzione.",
+      "monitorare": [
+        "L'asset esce dalla watchlist operativa (resta nel tab contesto)",
+        "Nessun bottom fishing su livelli tondi o ipervenduto senza struttura di accumulo",
+        "Percorso di ritorno: base + assorbimento + rottura con partecipazione (settimane, non barre)"
+      ],
+      "invalidazione": "Ricostruzione della struttura rialzista (sopra EMA200 con base).",
+      "errore_tipico": "Comprare la discesa 'perché è scesa tanto': il prezzo basso non è un livello.",
+      "lato_operativo": false,
+      "footer": "Scenario descrittivo — nessun edge statistico dimostrato. La decisione e il rischio restano tuoi: size dal pannello rischio."
+    },
+    {
+      "id": "capitolazione",
+      "famiglia": "F",
+      "titolo": "Capitolazione / liquidazioni a cascata",
+      "trigger": {
+        "evento": "cascade",
+        "oi": "collapse",
+        "volume": "extreme"
+      },
+      "lettura": "Liquidazioni d'ufficio: volatilità massima, spread larghi, stop inaffidabili. Zona proibita.",
+      "monitorare": [
+        "Nessuna operatività durante l'evento: anche i livelli ovvi filano per punti interi",
+        "Dopo: OI azzerato + primo laterale = terreno per possibile_assorbimento nei giorni successivi"
+      ],
+      "invalidazione": "Fine della cascata e primo laterale.",
+      "errore_tipico": "Provare a prendere il minimo dentro la cascata con la leva: il comportamento che cancella i conti retail.",
+      "lato_operativo": false,
+      "footer": "Scenario descrittivo — nessun edge statistico dimostrato. La decisione e il rischio restano tuoi: size dal pannello rischio."
+    }
+  ],
+  "checklist_universali": {
+    "pre_ingresso": [
+      "Scenario identificato e scheda letta ADESSO, non a memoria",
+      "Invalidazione STRUTTURALE (sotto base/livello del TF), non 'dove lo stop costa poco'",
+      "Size dal pannello rischio: rischio <= 1%, leva entro cap, liq_safe verde — se blocca, il trade NON esiste",
+      "Costi stimati (fee + funding per la durata attesa) guardati in faccia",
+      "Logica di uscita in profitto decisa ORA (target/trailing/struttura), non durante",
+      "TF superiore controllato: niente breakout 15m dentro una resistenza daily",
+      "Rischio aggregato accettabile con le posizioni correlate già aperte",
+      "Journal precompilato (scenario_id, TF, pattern, OI/CVD/funding/RVOL)"
+    ],
+    "in_posizione": [
+      "L'invalidazione non si sposta MAI contro di me",
+      "Rilettura scenario a ogni chiusura barra del TF: scenario invalidato = trade finito anche senza stop toccato",
+      "Niente aggiunte in perdita; aggiunte in profitto solo se pianificate prima, con rischio ricalcolato",
+      "Funding check giornaliero sulle posizioni overnight"
+    ],
+    "post_uscita": [
+      "Journal completato: esito, MAE/MFE, e una riga onesta — checklist seguita o no?",
+      "Se ho violato una regola: quale, e cosa la rende attraente da violare",
+      "Nessun re-ingresso sullo stesso asset entro la stessa barra del TF operativo (anti-revenge)"
+    ],
+    "routine_giornaliera": [
+      "Watchlist: leggere il PERCHÉ di ogni riga, non solo i nomi",
+      "Regime banner e funding di mercato: contesto della giornata",
+      "Massimo 2-3 asset in sorveglianza attiva",
+      "Drawdown giornaliero >= 2R: operatività chiusa fino a domani, soprattutto quando non vorrei applicarla"
+    ]
+  }
+}
