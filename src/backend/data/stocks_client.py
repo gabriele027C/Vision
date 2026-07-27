@@ -153,3 +153,81 @@ def intraday_4h(ticker: str) -> pd.DataFrame:
     if now_ny < bar_end:
         out = out.iloc[:-1]
     return out
+
+
+def last_prices(tickers: list[str]) -> dict[str, float]:
+    """Prezzo di mercato corrente (Yahoo), non la sola chiusura daily 'chiusa'.
+
+    Prova prima barre 1m (intraday); se vuote (mercato chiuso / weekend) cade
+    sul daily *includendo* la barra di oggi se presente — diverso da daily_history
+    che scarta la sessione in corso per non contaminare gli indicatori.
+    """
+    if not tickers:
+        return {}
+    out: dict[str, float] = {}
+
+    def _last_close(df: pd.DataFrame) -> float | None:
+        if df is None or df.empty:
+            return None
+        if isinstance(df.columns, pd.MultiIndex):
+            df = df.copy()
+            df.columns = df.columns.get_level_values(0)
+        col = "Close" if "Close" in df.columns else ("close" if "close" in df.columns else None)
+        if col is None:
+            return None
+        series = df[col].dropna()
+        if series.empty:
+            return None
+        return float(series.iloc[-1])
+
+    def _from_download(data, tickers_list: list[str]) -> dict[str, float]:
+        found: dict[str, float] = {}
+        if data is None or data.empty:
+            return found
+        if len(tickers_list) == 1:
+            px = _last_close(data)
+            if px is not None:
+                found[tickers_list[0]] = px
+            return found
+        for tkr in tickers_list:
+            try:
+                df = data[tkr]
+            except (KeyError, TypeError):
+                continue
+            px = _last_close(df)
+            if px is not None:
+                found[tkr] = px
+        return found
+
+    try:
+        data_1m = yf.download(
+            tickers,
+            period="1d",
+            interval="1m",
+            group_by="ticker",
+            auto_adjust=True,
+            threads=True,
+            progress=False,
+        )
+        out = _from_download(data_1m, tickers)
+    except Exception as exc:
+        log.warning("last_prices 1m fallito: %s", exc)
+
+    missing = [t for t in tickers if t not in out]
+    if missing:
+        try:
+            data_d = yf.download(
+                missing,
+                period="5d",
+                interval="1d",
+                group_by="ticker",
+                auto_adjust=True,
+                threads=True,
+                progress=False,
+            )
+            # NON chiamare _drop_unclosed_daily: vogliamo il prezzo di sessione
+            out.update(_from_download(data_d, missing))
+        except Exception as exc:
+            log.warning("last_prices daily fallback fallito: %s", exc)
+
+    return out

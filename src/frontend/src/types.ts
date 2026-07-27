@@ -22,6 +22,10 @@ export interface WatchRow {
   rs_score: number;
   rvol: number;
   last_price: number;
+  /** true se last_price è stato refreshato live (non solo chiusura daily allo scan) */
+  price_live?: boolean;
+  price_asof?: string;
+  price_source?: string;
   setup: "A" | "B";
   entry_trigger: number;
   stop: number;

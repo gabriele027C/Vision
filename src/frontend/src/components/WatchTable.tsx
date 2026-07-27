@@ -124,7 +124,18 @@ export default function WatchTable({
             <td className="mono" title={r.cvd_slope != null ? `slope ${r.cvd_slope}` : undefined}>
               {r.cvd_arrow ?? "—"}
             </td>
-            <td className="mono">{fmt(r.last_price)}</td>
+            <td
+              className="mono"
+              title={
+                r.price_asof
+                  ? `Aggiornato ${new Date(r.price_asof).toLocaleString("it-IT")}${r.price_live ? " (live)" : ""}`
+                  : r.price_source
+                    ? `Fonte: ${r.price_source}`
+                    : "Prezzo allo scan"
+              }
+            >
+              {fmt(r.last_price)}
+            </td>
             <td className="mono">{fmt(r.entry_trigger)}</td>
             <td className="mono">{fmt(r.stop)}</td>
             <td className="mono">

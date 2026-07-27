@@ -47,15 +47,86 @@ from engine.confluence import attach_confluence, sort_by_confluence
 
 from engine.playbook import primary_alert_scenario, scenario_ids_for_row
 
+from services.live_prices import (
+    PriceRefreshGate,
+    apply_live_prices,
+    fetch_live_prices,
+)
+
+import time as _time
 
 
 log = logging.getLogger(__name__)
 
-
-
 MAX_4H_CHECKS = 15
-
 DIAG_TOP_N = 30
+# Refresh prezzi live su /api/state: TTL corto, allineato al poll UI (~20s).
+PRICE_REFRESH_TTL_S = 20
+
+
+def apply_funding_to_row(row: dict, fr: float | None, funding_block: bool | None = None) -> None:
+    """Applica il funding al row: veto (status 'blocked') se estremo contro la direzione.
+
+    Con funding_block=False (o FUNDING_BLOCK=False in config) il comportamento
+    torna al solo warning testuale."""
+
+    if fr is None:
+        return
+    if funding_block is None:
+        funding_block = FUNDING_BLOCK
+    row["funding"] = fr
+    extreme = (row["direction"] == "long" and fr > FUNDING_EXTREME) or (
+        row["direction"] == "short" and fr < -FUNDING_EXTREME
+    )
+    if not extreme:
+        return
+    if funding_block:
+        row["status"] = "blocked"
+        row["warnings"].append(
+            "Funding estremo contro la direzione: trade bloccato, rischio squeeze (§9)"
+        )
+    else:
+        row["warnings"].append("Funding estremo: affollamento, rischio squeeze (§9)")
+
+
+def reconcile_status_with_price(row: dict) -> None:
+    """Allinea status a last_price vs rottura (long: triggered ⇒ prezzo ≥ trigger).
+
+    Lo status 'triggered' nasce dalla conferma 4H allo scan; se il prezzo live
+    è tornato sotto la rottura, non può restare triggered (timestamp diversi).
+    Non promuove a triggered: quello richiede conferma volume 4H allo scan.
+    """
+    if row.get("status") == "blocked":
+        return
+    px = row.get("last_price")
+    trig = row.get("entry_trigger")
+    if px is None or trig is None:
+        return
+    try:
+        px = float(px)
+        trig = float(trig)
+    except (TypeError, ValueError):
+        return
+    direction = row.get("direction", "long")
+    status = row.get("status", "watch")
+    if direction == "long":
+        if status == "triggered" and px < trig:
+            row["status"] = "near" if px >= trig * 0.99 else "watch"
+            warn = "Prezzo live sotto rottura: stato riallineato (triggered era su close 4H)"
+            warnings = row.setdefault("warnings", [])
+            if warn not in warnings:
+                warnings.append(warn)
+        elif status == "watch" and px >= trig * 0.99:
+            row["status"] = "near"
+    else:
+        if status == "triggered" and px > trig:
+            row["status"] = "near" if px <= trig * 1.01 else "watch"
+            warn = "Prezzo live sopra rottura short: stato riallineato (triggered era su close 4H)"
+            warnings = row.setdefault("warnings", [])
+            if warn not in warnings:
+                warnings.append(warn)
+        elif status == "watch" and px <= trig * 1.01:
+            row["status"] = "near"
 
 
 
@@ -132,9 +203,14 @@ class Scanner:
 
         self._timing_gate = TimingAlertGate()
 
+        self._price_gate = PriceRefreshGate()
 
 
-    def snapshot(self) -> dict:
+
+    def snapshot(self, *, refresh_prices: bool = True) -> dict:
+        """Stato corrente. Con refresh_prices=True aggiorna last_price (live) sulle watchlist."""
+        if refresh_prices and not self.scanning:
+            self.refresh_watchlist_prices()
 
         with self._lock:
 
@@ -155,6 +231,28 @@ class Scanner:
                 "bearish_context": self.bearish_context,
 
             }
+
+    def refresh_watchlist_prices(self) -> int:
+        """Aggiorna PREZZO live su crypto+stocks watchlist; riallinea status vs rottura."""
+        if not self._price_gate.allow():
+            return 0
+        with self._lock:
+            crypto = list(self.watchlist.get("crypto", []))
+            stocks = list(self.watchlist.get("stocks", []))
+        crypto_syms = [r["symbol"] for r in crypto]
+        stock_syms = [r["symbol"] for r in stocks]
+        if not crypto_syms and not stock_syms:
+            return 0
+        try:
+            prices = fetch_live_prices(crypto_syms, stock_syms)
+        except Exception as exc:
+            log.warning("refresh prezzi live fallito: %s", exc)
+            return 0
+        with self._lock:
+            n = 0
+            n += apply_live_prices(self.watchlist.get("crypto", []), prices)
+            n += apply_live_prices(self.watchlist.get("stocks", []), prices)
+        return n
 
 
 
@@ -339,6 +437,10 @@ class Scanner:
                     hist4, row["direction"], row["entry_trigger"]
 
                 )
+
+                row["last_price"] = float(hist4["close"].iloc[-1])
+
+                row["price_source"] = "4h_close"
 
                 c4 = detect_compression(hist4, "long", "4H")
 
@@ -642,6 +744,11 @@ class Scanner:
             if not df4.empty:
 
                 row["status"] = trigger_status_4h(df4, row["direction"], row["entry_trigger"])
+
+                # Stesso timestamp dello status: evita daily-close vs 4H-triggered incoerenti
+                row["last_price"] = float(df4["close"].iloc[-1])
+
+                row["price_source"] = "4h_close"
 
 
 

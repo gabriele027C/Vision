@@ -179,6 +179,29 @@ def funding_rate(symbol: str) -> float | None:
         return None
 
 
+def last_prices(symbols: list[str]) -> dict[str, float]:
+    """Prezzi spot correnti (GET /api/v3/ticker/price). Batch se possibile."""
+    if not symbols:
+        return {}
+    out: dict[str, float] = {}
+    try:
+        if len(symbols) == 1:
+            data = _get(f"{SPOT}/api/v3/ticker/price", params={"symbol": symbols[0]})
+            out[symbols[0]] = float(data["price"])
+            return out
+        # senza symbol → tutti i ticker; filtra in locale (una sola request)
+        data = _get(f"{SPOT}/api/v3/ticker/price")
+        want = set(symbols)
+        for row in data:
+            sym = row.get("symbol")
+            if sym in want:
+                out[sym] = float(row["price"])
+        return out
+    except Exception as exc:
+        log.warning("last_prices crypto fallito: %s", exc)
+        return out
+
+
 def open_interest_hist(
     symbol: str,
     period: str = OI_HIST_PERIOD,
