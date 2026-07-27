@@ -34,6 +34,12 @@ export interface WatchRow {
   entry_tf?: string;
   tf_4h?: { squeeze: boolean; entry_trigger?: number; stop?: number; note?: string };
   timing?: TimingInfo[];
+  /** FASE 4 — sintesi flusso (opzionali fino a popolamento). */
+  oi_state?: "up" | "down" | "flat" | "collapse" | null;
+  oi_delta_24h?: number | null;
+  oi_value?: number | null;
+  cvd_state?: "up" | "down" | "flat" | "down_strong" | null;
+  cvd_slope?: number | null;
 }
 
 export interface Alert {

@@ -42,10 +42,22 @@ export const api = {
   trades: () => http<Trade[]>("/api/trades"),
   createTrade: (t: Partial<Trade>) =>
     http<Trade>("/api/trades", { method: "POST", body: JSON.stringify(t) }),
-  closeTrade: (id: number, exit_price: number, mistake: boolean, notes: string) =>
+  closeTrade: (
+    id: number,
+    exit_price: number,
+    mistake: boolean,
+    notes: string,
+    opts?: { mae_r?: number | null; mfe_r?: number | null }
+  ) =>
     http<Trade>(`/api/trades/${id}/close`, {
       method: "PUT",
-      body: JSON.stringify({ exit_price, mistake, notes }),
+      body: JSON.stringify({
+        exit_price,
+        mistake,
+        notes,
+        mae_r: opts?.mae_r ?? null,
+        mfe_r: opts?.mfe_r ?? null,
+      }),
     }),
   deleteTrade: (id: number) => http(`/api/trades/${id}`, { method: "DELETE" }),
   metrics: () => http<Metrics>("/api/metrics"),

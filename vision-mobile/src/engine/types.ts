@@ -111,6 +111,23 @@ export interface Trade {
   notes: string;
   opened_at: string;
   closed_at: string | null;
+  timeframe?: string | null;
+  pattern?: string | null;
+  oi_at_entry?: number | null;
+  cvd_slope_at_entry?: number | null;
+  funding_at_entry?: number | null;
+  rvol_at_entry?: number | null;
+  mae_r?: number | null;
+  mfe_r?: number | null;
+  note?: string | null;
+  scenario_ids?: string[];
+}
+
+export interface MetricsBucket {
+  key: string;
+  n: number;
+  win_rate: number | null;
+  expectancy: number | null;
 }
 
 export interface Metrics {
@@ -128,6 +145,28 @@ export interface Metrics {
   equity_curve: { trade: number; cum_r: number }[];
   validation_passed: boolean;
   mistakes: number;
+  reliable_stats_from_n?: number;
+  stats_reliable?: boolean;
+  by_timeframe?: MetricsBucket[];
+  by_pattern?: MetricsBucket[];
+  by_context?: {
+    rvol: MetricsBucket[];
+    funding: MetricsBucket[];
+    oi: MetricsBucket[];
+  };
+  by_scenario?: {
+    scenario_id: string;
+    n: number;
+    win_rate: number;
+    expectancy: number;
+    note: string | null;
+  }[];
+  random_benchmark?: {
+    expected_wr_pct: number;
+    note: string;
+    user_wr_pct: number | null;
+    delta_wr_pp: number | null;
+  };
 }
 
 export interface Settings {

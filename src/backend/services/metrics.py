@@ -60,12 +60,15 @@ def _context_buckets(closed: list[dict]) -> dict[str, list[dict]]:
         return "flat"
 
     def bucket_oi(v: float) -> str:
-        # oi_at_entry qui è trattato come variazione % se |v|<5 tipicamente ratio;
-        # se l'utente salva il livello assoluto i bucket restano comunque descrittivi.
-        if v > 0.05:
-            return "up"
+        # |v|<=1 → Δ frazione (FASE 4 può salvare delta); altrimenti livello assoluto.
+        if abs(v) > 1.0:
+            return "level"
+        if v <= -0.20:
+            return "collapse"
         if v < -0.05:
             return "down"
+        if v > 0.05:
+            return "up"
         return "flat"
 
     def collect(field: str, labeler) -> list[dict]:
