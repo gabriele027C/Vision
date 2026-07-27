@@ -88,10 +88,30 @@ export const PLAYBOOK_THRESHOLDS = {
     down: -0.02,
     down_strong: -0.06,
   },
+  prezzo: {
+    flat_band: 0.005,
+    lookback_bars: 6,
+  },
+  rvol: {
+    high: 1.5,
+    low: 1.0,
+  },
 } as const;
 export const OI_HIST_CACHE_TTL_S = 3600;
 export const OI_HIST_PERIOD = "4h";
 export const FUTURES_KLINES_CACHE_TTL_S = 900;
+
+/** FASE 5 — pesi non validati, sola funzione di ordinamento dell'attenzione. */
+export const CONFLUENCE_WEIGHTS = {
+  tech: 0.15,
+  rs: 0.2,
+  cvd_long: 0.25,
+  oi_expand: 0.2,
+  funding_ok: 0.1,
+  rvol: 0.1,
+} as const;
+
+export const PLAYBOOK_IN_ALERTS = true;
 
 // Default settings utente
 export const DEFAULT_SETTINGS = {

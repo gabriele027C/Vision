@@ -36,11 +36,12 @@ export function classifyCvd(slopeNorm: number | null | undefined): CvdState | nu
 
 export function classifyPrice(
   deltaPct: number | null | undefined,
-  flatBand = 0.005
+  flatBand?: number
 ): PriceState | null {
   if (deltaPct == null || !Number.isFinite(deltaPct)) return null;
-  if (deltaPct >= flatBand) return "up";
-  if (deltaPct <= -flatBand) return "down";
+  const band = flatBand ?? PLAYBOOK_THRESHOLDS.prezzo.flat_band;
+  if (deltaPct >= band) return "up";
+  if (deltaPct <= -band) return "down";
   return "flat";
 }
 

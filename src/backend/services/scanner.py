@@ -42,6 +42,8 @@ from services.alerts import notify
 
 from services.flow_data import enrich_row_with_flow, fetch_flow_snapshot
 
+from engine.confluence import attach_confluence, sort_by_confluence
+
 
 
 log = logging.getLogger(__name__)
@@ -180,7 +182,15 @@ class Scanner:
             ctx = self._market_ctx.get(market)
 
         if hit is not None:
-
+            # Cache pre-FASE4 o scan senza flow: idrata OI/CVD se manca (crypto).
+            if market == "crypto" and hit.get("flow") is None and ctx is not None:
+                refreshed = self._diagnose_one(market, sym, ctx)
+                if refreshed is None:
+                    refreshed = self._fetch_and_diagnose(market, sym, ctx)
+                if refreshed is not None:
+                    with self._lock:
+                        self.diagnostics.setdefault(market, {})[sym] = refreshed
+                    return refreshed
             return hit
 
         if ctx is None:
@@ -490,6 +500,16 @@ class Scanner:
 
 
 
+        # FASE 5: confluence solo ordinamento (mai esclusione)
+
+        for row in rows:
+
+            attach_confluence(row)
+
+        rows = sort_by_confluence(rows)
+
+
+
         ctx = {
 
             "regime": regime,
@@ -617,6 +637,14 @@ class Scanner:
             if not df4.empty:
 
                 row["status"] = trigger_status_4h(df4, row["direction"], row["entry_trigger"])
+
+
+
+        for row in rows:
+
+            attach_confluence(row)
+
+        rows = sort_by_confluence(rows)
 
 
 
@@ -766,7 +794,9 @@ class Scanner:
 
             snap = flow_by.get(sym)
 
-            if market == "crypto" and snap is None and sym in wl_symbols:
+            # Diagnostica: OI/CVD per ogni crypto in cache (non solo watchlist).
+            # La watchlist resta la sola a ricevere enrich in scan; qui idratiamo on-demand.
+            if market == "crypto" and snap is None:
 
                 try:
 

@@ -16,6 +16,7 @@ import { fmt, openTradingView } from "../utils/format";
 
 const COLUMNS = [
   { key: "symbol", label: "Asset", width: 100 },
+  { key: "conf", label: "Conf", width: 45 },
   { key: "direction", label: "Dir", width: 60 },
   { key: "setup", label: "Setup", width: 70 },
   { key: "status", label: "Stato", width: 80 },
@@ -106,37 +107,40 @@ function WatchRowItem({
             </TouchableOpacity>
           )}
         </View>
-        <View style={[styles.cell, { width: COLUMNS[1].width }]}>
+        <Text style={[styles.cell, styles.mono, { width: COLUMNS[1].width }]}>
+          {row.confluence != null ? row.confluence.toFixed(0) : "—"}
+        </Text>
+        <View style={[styles.cell, { width: COLUMNS[2].width }]}>
           <Badge label={row.direction} variant={row.direction} />
         </View>
-        <View style={[styles.cell, { width: COLUMNS[2].width }]}>
+        <View style={[styles.cell, { width: COLUMNS[3].width }]}>
           <Badge label={`Setup ${row.setup}`} variant="setup" />
         </View>
-        <View style={[styles.cell, { width: COLUMNS[3].width }]}>
+        <View style={[styles.cell, { width: COLUMNS[4].width }]}>
           <Badge label={row.status} variant={row.status} pulse={row.status === "triggered"} />
         </View>
-        <Text style={[styles.cell, styles.mono, { width: COLUMNS[4].width }]}>
+        <Text style={[styles.cell, styles.mono, { width: COLUMNS[5].width }]}>
           {(row.rs_score * 100).toFixed(0)}%
         </Text>
-        <Text style={[styles.cell, styles.mono, { width: COLUMNS[5].width }]}>
+        <Text style={[styles.cell, styles.mono, { width: COLUMNS[6].width }]}>
           {row.rvol.toFixed(2)}
         </Text>
-        <Text style={[styles.cell, styles.mono, { width: COLUMNS[6].width }]}>
+        <Text style={[styles.cell, styles.mono, { width: COLUMNS[7].width }]}>
           {row.oi_arrow ?? "—"}
         </Text>
-        <Text style={[styles.cell, styles.mono, { width: COLUMNS[7].width }]}>
+        <Text style={[styles.cell, styles.mono, { width: COLUMNS[8].width }]}>
           {row.cvd_arrow ?? "—"}
         </Text>
-        <Text style={[styles.cell, styles.mono, { width: COLUMNS[8].width }]}>{fmt(row.last_price)}</Text>
-        <Text style={[styles.cell, styles.mono, { width: COLUMNS[9].width }]}>
+        <Text style={[styles.cell, styles.mono, { width: COLUMNS[9].width }]}>{fmt(row.last_price)}</Text>
+        <Text style={[styles.cell, styles.mono, { width: COLUMNS[10].width }]}>
           {fmt(row.entry_trigger)}
         </Text>
-        <Text style={[styles.cell, styles.mono, { width: COLUMNS[10].width }]}>{fmt(row.stop)}</Text>
-        <Text style={[styles.cell, styles.mono, { width: COLUMNS[11].width }]}>
+        <Text style={[styles.cell, styles.mono, { width: COLUMNS[11].width }]}>{fmt(row.stop)}</Text>
+        <Text style={[styles.cell, styles.mono, { width: COLUMNS[12].width }]}>
           {row.funding !== null ? `${(row.funding * 100).toFixed(3)}%` : "—"}
         </Text>
         {onPlan && (
-          <View style={[styles.cell, { width: COLUMNS[12].width }]}>
+          <View style={[styles.cell, { width: COLUMNS[13].width }]}>
             {row.status === "blocked" ? (
               <TouchableOpacity
                 style={[common.btn, common.btnSmall, { opacity: 0.4 }]}

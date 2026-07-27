@@ -115,11 +115,35 @@ PLAYBOOK_THRESHOLDS = {
         "down": -0.02,
         "down_strong": -0.06,
     },
+    "prezzo": {
+        # Stessa banda usata da classify_price (FASE 4): un solo punto di verità.
+        "flat_band": 0.005,          # |Δ| < 0.5% → flat (TF rif. 4H, lookback 6)
+        "lookback_bars": 6,
+    },
+    "rvol": {
+        "high": 1.5,
+        "low": 1.0,
+    },
 }
+
 # Cache disco OI hist (period 4h): TTL 1h — coerente col TF, evita hammering REST.
 OI_HIST_CACHE_TTL_S = 3600
 OI_HIST_PERIOD = "4h"
 FUTURES_KLINES_CACHE_TTL_S = 900  # 15m — CVD da klines futures chiuse
+
+# FASE 5 — pesi non validati, sola funzione di ordinamento dell'attenzione.
+# Somma = 1.0. Componenti mancanti (es. OI/CVD su stock) escluse + rinormalizzazione.
+CONFLUENCE_WEIGHTS = {
+    "tech": 0.15,        # situazione tecnica D/4H presente
+    "rs": 0.20,          # rank forza relativa
+    "cvd_long": 0.25,    # coerenza CVD col lato long (maggior peso informativo)
+    "oi_expand": 0.20,   # OI in espansione / non collasso
+    "funding_ok": 0.10,  # funding non contrario estremo
+    "rvol": 0.10,        # RVOL in salita / interesse
+}
+
+# FASE 5-BIS: includi scenario prioritario negli alert watchlist (mai schede protezione).
+PLAYBOOK_IN_ALERTS = True
 
 # --- Default impostazioni utente ---
 DEFAULT_SETTINGS = {

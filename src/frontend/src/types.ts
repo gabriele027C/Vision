@@ -34,7 +34,7 @@ export interface WatchRow {
   entry_tf?: string;
   tf_4h?: { squeeze: boolean; entry_trigger?: number; stop?: number; note?: string };
   timing?: TimingInfo[];
-  /** FASE 4 — sintesi flusso (opzionali fino a popolamento). */
+  /** FASE 4 — sintesi flusso */
   oi_state?: "up" | "down" | "flat" | "collapse" | null;
   oi_arrow?: string | null;
   oi_delta_24h?: number | null;
@@ -44,6 +44,20 @@ export interface WatchRow {
   cvd_arrow?: string | null;
   cvd_slope?: number | null;
   flow_combo_label?: string | null;
+  /** FASE 5 — ordinamento attenzione */
+  confluence?: number;
+  confluence_breakdown?: Record<
+    string,
+    {
+      weight: number;
+      raw: number | null;
+      contrib: number | null;
+      status: "ok" | "n/d";
+      weight_norm?: number;
+    }
+  >;
+  confluence_renorm?: boolean;
+  scenario_ids?: string[];
 }
 
 export interface Alert {

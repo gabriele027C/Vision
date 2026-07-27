@@ -54,13 +54,14 @@ def classify_cvd(slope_norm: float | None) -> CvdState | None:
     return "flat"
 
 
-def classify_price(delta_pct: float | None, flat_band: float = 0.005) -> PriceState | None:
+def classify_price(delta_pct: float | None, flat_band: float | None = None) -> PriceState | None:
     """Direzione prezzo descrittiva (es. close vs N barre fa)."""
     if delta_pct is None or not np.isfinite(delta_pct):
         return None
-    if delta_pct >= flat_band:
+    band = PLAYBOOK_THRESHOLDS["prezzo"]["flat_band"] if flat_band is None else flat_band
+    if delta_pct >= band:
         return "up"
-    if delta_pct <= -flat_band:
+    if delta_pct <= -band:
         return "down"
     return "flat"
 

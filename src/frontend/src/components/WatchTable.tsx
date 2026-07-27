@@ -20,6 +20,17 @@ function timingTitle(r: WatchRow): string {
   return parts.join("\n");
 }
 
+function confluenceTitle(r: WatchRow): string {
+  const bd = r.confluence_breakdown;
+  if (!bd) return `Confluence ${r.confluence ?? "—"}`;
+  const lines = Object.entries(bd).map(([k, v]) => {
+    if (v.status === "n/d") return `${k}: n/d`;
+    return `${k}: ${v.contrib ?? "—"} (raw ${v.raw})`;
+  });
+  if (r.confluence_renorm) lines.push("(rinormalizzato su componenti disponibili)");
+  return `Confluence ${r.confluence}\n` + lines.join("\n");
+}
+
 export function tvUrl(market: string, symbol: string): string {
   // Crypto: coppie spot Binance. Azioni: TradingView usa il punto (BRK.B), Yahoo il trattino.
   const tvSymbol = market === "crypto" ? `BINANCE:${symbol}` : symbol.replace("-", ".");
@@ -48,6 +59,7 @@ export default function WatchTable({
         <tr>
           <th>Asset</th>
           <th>TF</th>
+          <th>Conf</th>
           <th>Dir</th>
           <th>Setup</th>
           <th>Stato</th>
@@ -84,6 +96,9 @@ export default function WatchTable({
                 {r.entry_tf ?? "D"}
                 {alignedTiming(r) ? ` · ${alignedTiming(r)}` : ""}
               </span>
+            </td>
+            <td className="mono" title={confluenceTitle(r)}>
+              {r.confluence != null ? r.confluence.toFixed(0) : "—"}
             </td>
             <td><span className={`badge ${r.direction}`}>{r.direction}</span></td>
             <td><span className="badge setup">Setup {r.setup}</span></td>

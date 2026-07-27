@@ -23,6 +23,7 @@ import type {
 } from "../engine/types";
 import { notify } from "./alerts";
 import { enrichRowWithFlow } from "./flowData";
+import { attachConfluence, sortByConfluence } from "../engine/confluence";
 
 const MAX_4H_CHECKS = 15;
 const DIAG_TOP_N = 30;
@@ -216,6 +217,9 @@ async function scanCrypto(): Promise<void> {
     await enrichRowWithFlow(row);
   }
 
+  for (const row of rows) attachConfluence(row);
+  const ordered = sortByConfluence(rows);
+
   const ctx: MarketCtx = {
     regime,
     data,
@@ -224,8 +228,8 @@ async function scanCrypto(): Promise<void> {
     all_with_setup: allWithSetup,
     bench: btc,
   };
-  buildDiagnosticsCache("crypto", ctx, rows);
-  finalize("crypto", regime, rows);
+  buildDiagnosticsCache("crypto", ctx, ordered);
+  finalize("crypto", regime, ordered);
 }
 
 async function scanStocks(): Promise<void> {

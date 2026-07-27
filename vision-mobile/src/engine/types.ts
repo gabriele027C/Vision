@@ -39,6 +39,19 @@ export interface WatchRow {
   cvd_state?: "up" | "down" | "flat" | "down_strong" | null;
   cvd_arrow?: string | null;
   cvd_slope?: number | null;
+  confluence?: number;
+  confluence_breakdown?: Record<
+    string,
+    {
+      weight: number;
+      raw: number | null;
+      contrib: number | null;
+      status: "ok" | "n/d";
+      weight_norm?: number;
+    }
+  >;
+  confluence_renorm?: boolean;
+  scenario_ids?: string[];
 }
 
 export interface Alert {
