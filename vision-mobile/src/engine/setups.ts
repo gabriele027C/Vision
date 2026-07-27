@@ -264,7 +264,7 @@ export function detectSetupA(
 ): SetupSignal | null {
   const m = setupAMetrics(bars, direction, market);
   if (m == null) return null;
-  if (!(m.aligned && m.in_zone && m.momentum_ok && m.vol_declining)) return null;
+  if (!(m.aligned && m.in_zone && m.vol_declining)) return null;
   if (!m.stop_geometry_ok) return null;
 
   return {
@@ -274,7 +274,7 @@ export function detectSetupA(
     stop: roundPx(m.stop),
     atr: roundPx(m.atr),
     rsi: Math.round(m.rsi * 10) / 10,
-    note: "Pullback in trend: conferma il trigger sulla candela 4H con volume (TradingView)",
+    note: "Pullback in trend: verifica chiusura oltre il livello di rottura su 4H con volume (TradingView)",
   };
 }
 

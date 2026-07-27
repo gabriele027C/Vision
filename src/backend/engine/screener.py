@@ -41,22 +41,28 @@ def resolve_candidate_direction(
     score: float,
     last: float,
     e50: float,
-    long_allowed: bool,
-    short_allowed: bool,
+    long_allowed: bool = True,
+    short_allowed: bool = True,
 ) -> str | None:
-    """Direzione candidata screener — stessa logica di classify_candidates."""
-    if long_allowed and score >= RS_TOP_PERCENTILE and last > e50:
+    """Direzione da trend EMA50 (FASE 2: RS non esclude più).
+
+    long_allowed/short_allowed restano in firma per retrocompatibilità ma
+    non filtrano: il regime è solo banner informativo.
+    """
+    del score, long_allowed, short_allowed  # RS/regime non escludono
+    if last > e50:
         return "long"
-    if short_allowed and score <= RS_BOTTOM_PERCENTILE and last < e50:
+    if last < e50:
         return "short"
     return None
 
 
 def natural_direction(score: float, last: float, e50: float) -> str | None:
-    """Direzione 'naturale' da RS + trend EMA50, indipendente dal regime."""
-    if score >= RS_TOP_PERCENTILE and last > e50:
+    """Direzione da trend EMA50; RS usato solo per ordinamento a valle."""
+    del score
+    if last > e50:
         return "long"
-    if score <= RS_BOTTOM_PERCENTILE and last < e50:
+    if last < e50:
         return "short"
     return None
 
@@ -64,15 +70,17 @@ def natural_direction(score: float, last: float, e50: float) -> str | None:
 def classify_candidates(
     data: dict[str, pd.DataFrame],
     scores: dict[str, float],
-    long_allowed: bool,
-    short_allowed: bool,
+    long_allowed: bool = True,
+    short_allowed: bool = True,
     rvol_hard_filter: bool | None = None,
 ) -> list[dict]:
-    """Candidati long (top 20% RS, sopra EMA50) e short (bottom 20%, sotto EMA50).
+    """Candidati per trend EMA50, ORDINATI per rank RS (non esclusi da percentile).
 
-    RVOL: default ordina per punteggio combinato 0.7*RS + 0.3*RVOL cappato
-    (rank_score); con rvol_hard_filter=True (o RVOL_HARD_FILTER in config)
-    i candidati con RVOL < RVOL_INTEREST vengono scartati del tutto."""
+    FASE 2: il gate RS percentile non esclude più nulla — il rank_score ordina
+    l'attenzione. long_allowed/short_allowed ignorati (regime = banner).
+    Con rvol_hard_filter=True i candidati con RVOL < RVOL_INTEREST cadono.
+    """
+    del long_allowed, short_allowed
     if rvol_hard_filter is None:
         rvol_hard_filter = RVOL_HARD_FILTER
     out: list[dict] = []
@@ -86,7 +94,7 @@ def classify_candidates(
         rv_series = rvol(df["volume"])
         rv = float(rv_series.iloc[-1]) if pd.notna(rv_series.iloc[-1]) else 0.0
 
-        direction = resolve_candidate_direction(score, last, e50, long_allowed, short_allowed)
+        direction = resolve_candidate_direction(score, last, e50)
         if direction is None:
             continue
         if rvol_hard_filter and rv < RVOL_INTEREST:
@@ -101,6 +109,5 @@ def classify_candidates(
                 "rank_score": round(rank_score(score, rv, direction), 4),
             }
         )
-    # I candidati più forti per primi: RS direzionale + spinta RVOL.
     out.sort(key=lambda c: -c["rank_score"])
     return out

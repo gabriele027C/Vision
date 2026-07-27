@@ -522,12 +522,10 @@ def diagnose_asset(
     )
 
     if watchlist_eligible is None:
+        # FASE 2: eleggibilità = trend EMA50. Regime/mixed/halt non escludono.
         eligible = cand_dir is not None
         if market == "crypto" and regime.get("mode") == "mixed" and symbol not in CRYPTO_MIXED_SYMBOLS:
-            eligible = False
-            mixed_filtered = True
-        if market == "stocks" and regime.get("mode") == "halt":
-            eligible = False
+            mixed_filtered = True  # solo warning informativo
         watchlist_eligible = eligible
 
     direction = cand_dir or suggested or "long"

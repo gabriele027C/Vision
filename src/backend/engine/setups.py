@@ -290,7 +290,11 @@ def setup_b_metrics(df: pd.DataFrame, direction: str, market: str | None = None)
 
 def detect_setup_a(df: pd.DataFrame, direction: str, market: str | None = None) -> dict | None:
 
-    """Pullback verso EMA20-EMA50 in trend allineato, volume in calo, RSI intatto."""
+    """Pullback verso EMA20-EMA50 in trend allineato, volume in calo.
+
+    FASE 2: RSI (momentum_ok) NON è più criterio di ingresso in watchlist —
+    resta calcolato in setup_a_metrics e visibile in diagnostica.
+    """
 
     m = setup_a_metrics(df, direction, market)
 
@@ -298,7 +302,7 @@ def detect_setup_a(df: pd.DataFrame, direction: str, market: str | None = None) 
 
         return None
 
-    if not (m["aligned"] and m["in_zone"] and m["momentum_ok"] and m["vol_declining"]):
+    if not (m["aligned"] and m["in_zone"] and m["vol_declining"]):
 
         return None
 
@@ -322,7 +326,7 @@ def detect_setup_a(df: pd.DataFrame, direction: str, market: str | None = None) 
 
         "rsi": round(m["rsi"], 1),
 
-        "note": "Pullback in trend: conferma il trigger sulla candela 4H con volume (TradingView)",
+        "note": "Pullback in trend: verifica chiusura oltre il livello di rottura su 4H con volume (TradingView)",
 
     }
 

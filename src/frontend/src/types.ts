@@ -40,6 +40,24 @@ export interface AppState {
   last_error: string | null;
   regimes: Record<string, Regime>;
   watchlist: { crypto: WatchRow[]; stocks: WatchRow[] };
+  bearish_context?: {
+    crypto: {
+      symbol: string;
+      rs_score: number;
+      rvol: number;
+      last_price: number;
+      setup: string;
+      note: string;
+    }[];
+    stocks: {
+      symbol: string;
+      rs_score: number;
+      rvol: number;
+      last_price: number;
+      setup: string;
+      note: string;
+    }[];
+  };
   alerts: Alert[];
   unread_alerts: number;
 }

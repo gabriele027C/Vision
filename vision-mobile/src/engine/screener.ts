@@ -1,10 +1,7 @@
-/** Selezione asset (§3): forza relativa vs benchmark + RVOL + filtro trend. */
-import {
-  RS_BOTTOM_PERCENTILE,
-  RS_TOP_PERCENTILE,
-  RVOL_HARD_FILTER,
-  RVOL_INTEREST,
-} from "../config";
+/** Selezione asset: forza relativa vs benchmark + RVOL + trend EMA50.
+ * FASE 2: RS percentile non esclude — solo ordina. Regime non filtra.
+ */
+import { RVOL_HARD_FILTER, RVOL_INTEREST } from "../config";
 import { ema, pctReturn, rvol } from "./indicators";
 import type { OHLCVBar } from "./types";
 
@@ -61,33 +58,34 @@ export function rsScores(
   return rankPct(raw);
 }
 
+/** Direzione da trend EMA50 (RS/regime non escludono). */
 export function resolveCandidateDirection(
-  score: number,
+  _score: number,
   last: number,
   e50: number,
-  longAllowed: boolean,
-  shortAllowed: boolean
+  _longAllowed = true,
+  _shortAllowed = true
 ): "long" | "short" | null {
-  if (longAllowed && score >= RS_TOP_PERCENTILE && last > e50) return "long";
-  if (shortAllowed && score <= RS_BOTTOM_PERCENTILE && last < e50) return "short";
+  if (last > e50) return "long";
+  if (last < e50) return "short";
   return null;
 }
 
 export function naturalDirection(
-  score: number,
+  _score: number,
   last: number,
   e50: number
 ): "long" | "short" | null {
-  if (score >= RS_TOP_PERCENTILE && last > e50) return "long";
-  if (score <= RS_BOTTOM_PERCENTILE && last < e50) return "short";
+  if (last > e50) return "long";
+  if (last < e50) return "short";
   return null;
 }
 
 export function classifyCandidates(
   data: Record<string, OHLCVBar[]>,
   scores: Record<string, number>,
-  longAllowed: boolean,
-  shortAllowed: boolean,
+  _longAllowed = true,
+  _shortAllowed = true,
   rvolHardFilter: boolean | null = null
 ): ScreenerCandidate[] {
   const hardFilter = rvolHardFilter ?? RVOL_HARD_FILTER;
@@ -98,14 +96,13 @@ export function classifyCandidates(
 
     const close = bars.map((b) => b.close);
     const last = close[close.length - 1];
-    const e50Series = ema(close, 50);
-    const e50 = e50Series[e50Series.length - 1];
+    const e50 = ema(close, 50)[close.length - 1];
     const rvSeries = rvol(bars.map((b) => b.volume));
-    const rvVal = rvSeries[rvSeries.length - 1];
-    const rv = rvVal != null && !Number.isNaN(rvVal) ? rvVal : 0;
+    const rvRaw = rvSeries[rvSeries.length - 1];
+    const rv = Number.isFinite(rvRaw) ? rvRaw : 0;
 
-    const direction = resolveCandidateDirection(score, last, e50, longAllowed, shortAllowed);
-    if (direction == null) continue;
+    const direction = resolveCandidateDirection(score, last, e50);
+    if (!direction) continue;
     if (hardFilter && rv < RVOL_INTEREST) continue;
 
     out.push({
@@ -117,7 +114,6 @@ export function classifyCandidates(
       rank_score: Math.round(rankScore(score, rv, direction) * 10000) / 10000,
     });
   }
-  // I candidati più forti per primi: RS direzionale + spinta RVOL.
   out.sort((a, b) => b.rank_score - a.rank_score);
   return out;
 }

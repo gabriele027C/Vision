@@ -108,6 +108,8 @@ class Scanner:
 
         self.watchlist: dict[str, list[dict]] = {"crypto": [], "stocks": []}
 
+        self.bearish_context: dict[str, list[dict]] = {"crypto": [], "stocks": []}
+
         self.diagnostics: dict[str, dict[str, dict]] = {"crypto": {}, "stocks": {}}
 
         self._prev_triggered: set[str] = set()
@@ -133,6 +135,8 @@ class Scanner:
                 "regimes": self.regimes,
 
                 "watchlist": self.watchlist,
+
+                "bearish_context": self.bearish_context,
 
             }
 
@@ -256,19 +260,45 @@ class Scanner:
 
         candidates = screener.classify_candidates(
 
-            data, scores, regime["long_allowed"], regime["short_allowed"]
+            data, scores, True, True
 
         )
 
-        if regime["mode"] == "mixed":
+        # FASE 2: regime non filtra più (banner informativo). Long-only operativo.
 
-            candidates = [c for c in candidates if c["symbol"] in ("BTCUSDT", "ETHUSDT")]
+        long_cands = [c for c in candidates if c["direction"] == "long"]
+
+        short_cands = [c for c in candidates if c["direction"] == "short"]
 
 
 
         self._set_progress("Crypto: rilevamento setup...")
 
-        rows, all_with_setup = self._detect_setups("crypto", candidates, data)
+        rows, all_with_setup = self._detect_setups("crypto", long_cands, data)
+
+        _, short_setups = self._detect_setups("crypto", short_cands, data)
+
+        bearish = [
+
+            {
+
+                "symbol": r["symbol"],
+
+                "rs_score": r["rs_score"],
+
+                "rvol": r["rvol"],
+
+                "last_price": r["last_price"],
+
+                "setup": r["setup"],
+
+                "note": "Contesto ribassista — solo informativo, nessun livello operativo",
+
+            }
+
+            for r in short_setups
+
+        ]
 
 
 
@@ -308,7 +338,7 @@ class Scanner:
 
         self._build_diagnostics_cache("crypto", ctx, rows)
 
-        self._finalize("crypto", regime, rows)
+        self._finalize("crypto", regime, rows, bearish)
 
 
 
@@ -366,19 +396,45 @@ class Scanner:
 
         candidates = screener.classify_candidates(
 
-            data, scores, regime["long_allowed"], regime["short_allowed"]
+            data, scores, True, True
 
         )
 
-        if regime["mode"] == "halt":
+        # FASE 2: regime/halt non bloccano la watchlist (banner informativo).
 
-            candidates = []
+        long_cands = [c for c in candidates if c["direction"] == "long"]
+
+        short_cands = [c for c in candidates if c["direction"] == "short"]
 
 
 
         self._set_progress("Stocks: rilevamento setup...")
 
-        rows, all_with_setup = self._detect_setups("stocks", candidates, data)
+        rows, all_with_setup = self._detect_setups("stocks", long_cands, data)
+
+        _, short_setups = self._detect_setups("stocks", short_cands, data)
+
+        bearish = [
+
+            {
+
+                "symbol": r["symbol"],
+
+                "rs_score": r["rs_score"],
+
+                "rvol": r["rvol"],
+
+                "last_price": r["last_price"],
+
+                "setup": r["setup"],
+
+                "note": "Contesto ribassista — solo informativo, nessun livello operativo",
+
+            }
+
+            for r in short_setups
+
+        ]
 
 
 
@@ -410,7 +466,7 @@ class Scanner:
 
         self._build_diagnostics_cache("stocks", ctx, rows)
 
-        self._finalize("stocks", regime, rows)
+        self._finalize("stocks", regime, rows, bearish)
 
 
 
@@ -710,13 +766,45 @@ class Scanner:
 
 
 
-    def _finalize(self, market: str, regime: dict, rows: list[dict]) -> None:
+    def _finalize(
+
+        self, market: str, regime: dict, rows: list[dict], bearish: list[dict] | None = None
+
+    ) -> None:
 
         for row in rows:
+
+            if row.get("direction") != "long":
+
+                continue  # nessun alert su contesto ribassista
 
             key = f"{market}:{row['symbol']}:{row['direction']}:{row['setup']}"
 
             if row["status"] == "triggered" and key not in self._prev_triggered:
+
+                setup_label = (
+
+                    "pullback" if row["setup"] == "A" else "compressione/breakout"
+
+                )
+
+                fr = row.get("funding")
+
+                if fr is None:
+
+                    fund_txt = "funding n/d"
+
+                elif abs(fr) < 0.0001:
+
+                    fund_txt = "funding neutro"
+
+                else:
+
+                    fund_txt = f"funding {(fr * 100):.4f}%/8h"
+
+                rs = row.get("rs_score")
+
+                rs_txt = f"RS {rs:.0%}" if isinstance(rs, (int, float)) else "RS n/d"
 
                 notify(
 
@@ -724,11 +812,9 @@ class Scanner:
 
                     row["symbol"],
 
-                    f"TRIGGER Setup {row['setup']} {row['direction'].upper()} — "
+                    f"{row['symbol']} entra in watchlist: {setup_label} + {rs_txt}, "
 
-                    f"entrata {row['entry_trigger']}, stop {row['stop']}. "
-
-                    f"Verifica su TradingView e usa il Trade Planner.",
+                    f"rottura {row['entry_trigger']}, invalidazione {row['stop']}, {fund_txt}",
 
                 )
 
@@ -741,6 +827,8 @@ class Scanner:
             self.regimes[market] = regime
 
             self.watchlist[market] = rows
+
+            self.bearish_context[market] = bearish or []
 
 
 

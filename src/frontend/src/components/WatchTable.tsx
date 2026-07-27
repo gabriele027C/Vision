@@ -39,8 +39,8 @@ export default function WatchTable({
           <th>RS</th>
           <th>RVOL</th>
           <th>Prezzo</th>
-          <th>Trigger</th>
-          <th>Stop</th>
+          <th>Rottura</th>
+          <th>Invalidazione</th>
           <th>Funding</th>
           <th></th>
         </tr>
@@ -64,7 +64,9 @@ export default function WatchTable({
             </td>
             <td><span className={`badge ${r.direction}`}>{r.direction}</span></td>
             <td><span className="badge setup">Setup {r.setup}</span></td>
-            <td><span className={`badge ${r.status}`}>{r.status}</span></td>
+            <td><span className={`badge ${r.status}`}>
+              {r.status === "blocked" ? "veto funding" : r.status}
+            </span></td>
             <td className="mono">{(r.rs_score * 100).toFixed(0)}%</td>
             <td className="mono">{r.rvol.toFixed(2)}</td>
             <td className="mono">{fmt(r.last_price)}</td>

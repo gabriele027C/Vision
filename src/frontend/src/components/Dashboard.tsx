@@ -49,11 +49,11 @@ export default function Dashboard({
       </div>
 
       <div className="card section">
-        <h3>Setup caldi (near / triggered)</h3>
+        <h3>Situazioni calde (near / triggered)</h3>
         {hot.length > 0 ? (
           <WatchTable rows={hot} onPlan={onPlan} />
         ) : (
-          <div className="empty">Nessun trigger attivo. Pazienza è una posizione.</div>
+          <div className="empty">Nessuna situazione attiva. Pazienza è una posizione.</div>
         )}
       </div>
 
