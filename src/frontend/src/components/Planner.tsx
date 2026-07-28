@@ -311,10 +311,17 @@ export default function Planner({
           ))}
         </div>
         <div className="row" style={{ marginTop: 16 }}>
-          <button className="btn" disabled={!allChecked || !sizing || !symbol} onClick={registerTrade}>
+          <button
+            className="btn"
+            disabled={!allChecked || !sizing || !!sizingError || sizing?.liq_safe === false || !symbol}
+            onClick={registerTrade}
+          >
             Registra trade aperto nel journal
           </button>
           {!allChecked && <span className="muted">Completa la checklist per sbloccare.</span>}
+          {(!!sizingError || sizing?.liq_safe === false) && (
+            <span className="neg">Registrazione bloccata: sizing non sicuro (liquidazione).</span>
+          )}
         </div>
         {saved && <div className="pos" style={{ marginTop: 10 }}>{saved}</div>}
         <div className="muted" style={{ marginTop: 14 }}>

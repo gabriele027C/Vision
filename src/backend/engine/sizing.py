@@ -6,6 +6,21 @@ size = rischio in valuta / distanza dallo stop, poi:
   scatti PRIMA della liquidazione (altrimenti errore bloccante);
 - costi round-trip taker (+ funding stimato opzionale) e target 2R al netto.
 
+Liquidazione e rischio 1% / cap 5x
+---------------------------------
+Con rischio tipico (~1%) e CRYPTO_MAX_LEVERAGE=5x, uno stop “oltre la
+liquidazione” è irraggiungibile: il cap di leva sposta la liq abbastanza
+lontano che stop realistici restano sempre “safe”. Non è un bug.
+Anche a risk_pct=5% con max_leverage=20, uno stop abbastanza stretto da
+implicare 20x resta sopra la liq a 20x — il blocco richiede parametri
+veramente anomali (es. risk_pct molto alto + max_leverage elevato).
+
+Il check `liq_safe` è una rete di sicurezza se i parametri cambiano
+(max_leverage più alto, risk_pct anomalo, stop molto lontano). In quel caso
+ritorna errore bloccante con liq_safe=False. I client devono anche disabilitare
+esplicitamente il bottone di registrazione su liq_safe===false / sizingError,
+non affidarsi solo all’HTTP 400.
+
 La firma resta retrocompatibile: i vecchi chiamanti
 position_size(capital, risk_pct, entry, stop, half_size) continuano a
 funzionare (direction viene inferita dalla posizione dello stop).

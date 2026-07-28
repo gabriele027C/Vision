@@ -105,6 +105,39 @@ def test_low_leverage_always_liq_safe():
     assert r["leverage"] < 1.0
 
 
+def test_liq_block_with_anomalous_params_max_lev_20():
+    """Rete di sicurezza: con max_leverage=20 e rischio anomalo lo stop lontano blocca.
+
+    Nota: a risk_pct=5% il blocco resta matematicamente impossibile (per raggiungere
+    20x lo stop deve essere così stretto da restare sopra la liq a 20x). Serve un
+    risk_pct anomalo (qui 150%) insieme a max_leverage elevato.
+    """
+    r = position_size(
+        1000, 150.0, 100.0, 75.0, market="crypto", max_leverage=20.0, direction="long"
+    )
+    assert "error" in r
+    assert r["liq_safe"] is False
+    assert r["leverage"] > 5.0  # sopra il default: la rete di sicurezza è attiva
+    assert "liquidazione" in r["error"].lower()
+
+
+def test_liq_block_does_not_fire_on_normal_1pct_5x():
+    """Con rischio 1% e cap 5x default, anche stop ampi restano liq_safe."""
+    # Spec audit: capital 4000, entry 100, stop 99 → leva ~1x, safe
+    a = position_size(4000, 1.0, 100.0, 99.0, market="crypto")
+    assert "error" not in a
+    assert a["liq_safe"] is True
+    assert a["leverage_capped"] is False
+    # risk 5% + max_leverage 20 con stop ampio: leva bassa → non blocca
+    b = position_size(1000, 5.0, 100.0, 75.0, market="crypto", max_leverage=20.0)
+    assert "error" not in b
+    assert b["liq_safe"] is True
+    # Caso normale cappato a 5x
+    c = position_size(1000, 1.0, 100.0, 75.0, market="crypto", max_leverage=5.0)
+    assert "error" not in c
+    assert c["liq_safe"] is True
+
+
 # ---------- Costi ----------
 
 

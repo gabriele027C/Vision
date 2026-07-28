@@ -1,4 +1,15 @@
-/** Position sizing frazionale fisso (§7) con vincoli futures — speculare a engine/sizing.py. */
+/**
+ * Position sizing frazionale fisso (§7) con vincoli futures — speculare a engine/sizing.py.
+ *
+ * Liquidazione vs rischio 1% / cap 5x: con rischio tipico (~1%) e
+ * CRYPTO_MAX_LEVERAGE=5x, uno stop “oltre la liquidazione” è irraggiungibile
+ * perché il cap sposta la liq lontano dagli stop realistici. Non è un bug.
+ *
+ * `liq_safe` è una rete di sicurezza se i parametri cambiano (maxLeverage più
+ * alto, riskPct anomalo, stop molto lontano): in quel caso ritorna errore con
+ * liq_safe=false. La UI deve disabilitare la registrazione esplicitamente su
+ * sizingError / liq_safe===false, non solo sull’HTTP 400.
+ */
 import type { SizingResult } from "./types";
 
 export const CRYPTO_MAX_LEVERAGE = 5.0;

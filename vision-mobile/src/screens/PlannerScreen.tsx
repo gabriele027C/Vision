@@ -242,13 +242,24 @@ export default function PlannerScreen() {
 
           <View style={[common.row, styles.actions]}>
             <TouchableOpacity
-              style={[common.btn, (!allChecked || !sizing || !symbol) && common.btnDisabled]}
+              style={[
+                common.btn,
+                (!allChecked || !sizing || !!sizingError || sizing?.liq_safe === false || !symbol) &&
+                  common.btnDisabled,
+              ]}
               onPress={registerTrade}
-              disabled={!allChecked || !sizing || !symbol}
+              disabled={
+                !allChecked || !sizing || !!sizingError || sizing?.liq_safe === false || !symbol
+              }
             >
               <Text style={common.btnText}>Registra trade aperto nel journal</Text>
             </TouchableOpacity>
             {!allChecked && <Text style={common.muted}>Completa la checklist per sbloccare.</Text>}
+            {(!!sizingError || sizing?.liq_safe === false) && (
+              <Text style={common.neg}>
+                Registrazione bloccata: sizing non sicuro (liquidazione).
+              </Text>
+            )}
           </View>
           {saved && <Text style={[common.pos, styles.saved]}>{saved}</Text>}
           <Text style={[common.muted, styles.footer]}>
