@@ -82,6 +82,11 @@ export default function Journal() {
           {" "}Statistiche del journal affidabili da n≥{metrics?.reliable_stats_from_n ?? 100}
           {metrics?.stats_reliable ? " (raggiunte)." : "."}
         </div>
+        <div className="muted" style={{ marginTop: 8 }}>
+          I breakdown per timeframe / pattern / scenario si popolano con i nuovi trade
+          registrati (n≥10 per riga). I trade storici senza quei campi restano esclusi
+          dai bucket.
+        </div>
       </div>
 
       {metrics?.random_benchmark && (
@@ -90,7 +95,7 @@ export default function Journal() {
           <p className="muted" style={{ marginBottom: 8 }}>{metrics.random_benchmark.note}</p>
           <div className="grid grid-4">
             <Stat label="WR tuo" value={metrics.random_benchmark.user_wr_pct} suffix="%" />
-            <Stat label="WR atteso random" value={metrics.random_benchmark.expected_wr_pct} suffix="%" />
+            <Stat label="riferimento caso (≈33% a 2R)" value={metrics.random_benchmark.expected_wr_pct} suffix="%" />
             <Stat
               label="Delta (pp)"
               value={metrics.random_benchmark.delta_wr_pp}
@@ -100,59 +105,55 @@ export default function Journal() {
         </div>
       )}
 
-      {metrics && ((metrics.by_timeframe?.length ?? 0) > 0 || (metrics.by_pattern?.length ?? 0) > 0) && (
-        <div className="card section">
-          <h3>Expectancy per timeframe / pattern</h3>
-          <div className="grid grid-2" style={{ gap: 16 }}>
-            <div>
-              <h4 className="muted">Timeframe</h4>
-              {(metrics.by_timeframe ?? []).length === 0 && <div className="muted">—</div>}
-              {(metrics.by_timeframe ?? []).map((b) => (
-                <div key={b.key} className="mono" style={{ marginBottom: 4 }}>
-                  {b.key}: n={b.n} WR={b.win_rate}% exp={b.expectancy}R
-                </div>
-              ))}
-            </div>
-            <div>
-              <h4 className="muted">Pattern</h4>
-              {(metrics.by_pattern ?? []).length === 0 && <div className="muted">—</div>}
-              {(metrics.by_pattern ?? []).map((b) => (
-                <div key={b.key} className="mono" style={{ marginBottom: 4 }}>
-                  {b.key}: n={b.n} WR={b.win_rate}% exp={b.expectancy}R
-                </div>
-              ))}
-            </div>
+      {/* Sempre visibile: anche se i bucket sono vuoti, la nota spiega perché */}
+      <div className="card section">
+        <h3>Expectancy per timeframe / pattern / contesto</h3>
+        <p className="muted" style={{ marginBottom: 12 }}>
+          I breakdown per timeframe/pattern/scenario si popolano con i nuovi trade
+          registrati (n≥10 per riga).
+        </p>
+        <div className="grid grid-2" style={{ gap: 16 }}>
+          <div>
+            <h4 className="muted">Timeframe</h4>
+            {(metrics?.by_timeframe ?? []).length === 0 && <div className="muted">—</div>}
+            {(metrics?.by_timeframe ?? []).map((b) => (
+              <div key={b.key} className="mono" style={{ marginBottom: 4 }}>
+                {b.key}: n={b.n} WR={b.win_rate}% exp={b.expectancy}R
+              </div>
+            ))}
+          </div>
+          <div>
+            <h4 className="muted">Pattern</h4>
+            {(metrics?.by_pattern ?? []).length === 0 && <div className="muted">—</div>}
+            {(metrics?.by_pattern ?? []).map((b) => (
+              <div key={b.key} className="mono" style={{ marginBottom: 4 }}>
+                {b.key}: n={b.n} WR={b.win_rate}% exp={b.expectancy}R
+              </div>
+            ))}
           </div>
         </div>
-      )}
-
-      {metrics?.by_context &&
-        ((metrics.by_context.rvol?.length ?? 0) > 0 ||
-          (metrics.by_context.funding?.length ?? 0) > 0 ||
-          (metrics.by_context.oi?.length ?? 0) > 0) && (
-          <div className="card section">
-            <h3>Expectancy per contesto (RVOL / funding / OI)</h3>
-            <div className="grid grid-3" style={{ gap: 16 }}>
-              {(
-                [
-                  ["RVOL", metrics.by_context.rvol],
-                  ["Funding", metrics.by_context.funding],
-                  ["OI", metrics.by_context.oi],
-                ] as const
-              ).map(([label, buckets]) => (
-                <div key={label}>
-                  <h4 className="muted">{label}</h4>
-                  {buckets.length === 0 && <div className="muted">—</div>}
-                  {buckets.map((b) => (
-                    <div key={b.key} className="mono" style={{ marginBottom: 4 }}>
-                      {b.key}: n={b.n} WR={b.win_rate}% exp={b.expectancy}R
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
+        {metrics?.by_context && (
+          <div className="grid grid-3" style={{ gap: 16, marginTop: 16 }}>
+            {(
+              [
+                ["RVOL", metrics.by_context.rvol],
+                ["Funding", metrics.by_context.funding],
+                ["OI", metrics.by_context.oi],
+              ] as const
+            ).map(([label, buckets]) => (
+              <div key={label}>
+                <h4 className="muted">{label}</h4>
+                {buckets.length === 0 && <div className="muted">—</div>}
+                {buckets.map((b) => (
+                  <div key={b.key} className="mono" style={{ marginBottom: 4 }}>
+                    {b.key}: n={b.n} WR={b.win_rate}% exp={b.expectancy}R
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
         )}
+      </div>
 
       {metrics && metrics.equity_curve.length > 1 && (
         <div className="card section">

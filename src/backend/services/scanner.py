@@ -1115,6 +1115,17 @@ class Scanner:
         except Exception as exc:
             log.warning("finalize %s: stamp live prices fallito: %s", market, exc)
 
+        # Alias user-facing: breakout_level ≡ entry_trigger (legacy engine key)
+        for row in rows:
+            et = row.get("entry_trigger")
+            if et is not None:
+                row["breakout_level"] = row.get("breakout_level", et)
+        if bearish:
+            for row in bearish:
+                et = row.get("entry_trigger")
+                if et is not None:
+                    row["breakout_level"] = row.get("breakout_level", et)
+
         for row in rows:
 
             if row.get("direction") != "long":

@@ -133,7 +133,25 @@ export default function JournalScreen() {
             Soglie per passare al capitale reale: expectancy &gt; 0.15R · profit factor &gt; 1.4 · 50 trade.
             Errori di esecuzione segnati: {metrics?.mistakes ?? 0}.
           </Text>
+          <Text style={[common.muted, { marginTop: 8 }]}>
+            I breakdown per timeframe/pattern/scenario si popolano con i nuovi trade registrati
+            (n≥10 per riga).
+          </Text>
         </View>
+
+        {metrics?.random_benchmark && (
+          <View style={[common.card, styles.section]}>
+            <Text style={common.cardTitle}>Confronto col caso (R:R 2:1)</Text>
+            <Text style={[common.muted, { marginBottom: 8 }]}>
+              {metrics.random_benchmark.note}
+            </Text>
+            <Stat
+              label="riferimento caso (≈33% a 2R)"
+              value={metrics.random_benchmark.expected_wr_pct}
+              suffix="%"
+            />
+          </View>
+        )}
 
         {metrics && metrics.equity_curve.length > 1 && (
           <View style={[common.card, styles.section]}>

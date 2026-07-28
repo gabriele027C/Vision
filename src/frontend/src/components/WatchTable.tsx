@@ -148,7 +148,7 @@ export default function WatchTable({
               </div>
             </td>
             <td className="mono" title="Livello di rottura (struttura)">
-              {fmt(r.entry_trigger)}
+              {fmt(r.breakout_level ?? r.entry_trigger)}
               <div className="muted" style={{ fontSize: 10 }}>livello</div>
             </td>
             <td className="mono" title="Livello di invalidazione (struttura)">

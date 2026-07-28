@@ -392,6 +392,7 @@ function detectSetups(
       last_price: cand.last_price,
       setup: setup.setup,
       entry_trigger: setup.entry_trigger,
+      breakout_level: setup.entry_trigger,
       stop: setup.stop,
       atr: setup.atr,
       status: setup.status_hint ?? "watch",
@@ -555,14 +556,21 @@ function buildDiagnosticsCache(
 
 function finalize(market: "crypto" | "stocks", regime: Regime, rows: WatchRow[]): void {
   for (const row of rows) {
+    if (row.entry_trigger != null) {
+      row.breakout_level = row.breakout_level ?? row.entry_trigger;
+    }
+    if (row.direction !== "long") continue;
     const key = `${market}:${row.symbol}:${row.direction}:${row.setup}`;
     if (row.status === "triggered" && !prevTriggered.has(key)) {
+      const setupLabel = row.setup === "A" ? "pullback" : "compressione/breakout";
+      const rsTxt = `RS ${(row.rs_score * 100).toFixed(0)}%`;
+      const fundTxt =
+        row.funding != null ? `funding ${(row.funding * 100).toFixed(3)}%` : "funding n/d";
+      const level = row.breakout_level ?? row.entry_trigger;
       notify(
         market,
         row.symbol,
-        `TRIGGER Setup ${row.setup} ${row.direction.toUpperCase()} — ` +
-          `entrata ${row.entry_trigger}, stop ${row.stop}. ` +
-          `Verifica su TradingView e usa il Trade Planner.`
+        `${row.symbol} entra in watchlist: ${setupLabel} + ${rsTxt}, rottura ${level}, invalidazione ${row.stop}, ${fundTxt}`
       );
     }
     if (row.status === "triggered") prevTriggered.add(key);

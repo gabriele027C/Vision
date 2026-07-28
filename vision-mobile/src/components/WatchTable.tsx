@@ -140,7 +140,9 @@ function WatchRowItem({
           </Text>
         </View>
         <View style={[styles.cell, { width: COLUMNS[10].width }]}>
-          <Text style={[styles.mono, { fontSize: 11 }]}>{fmt(row.entry_trigger)}</Text>
+          <Text style={[styles.mono, { fontSize: 11 }]}>
+            {fmt(row.breakout_level ?? row.entry_trigger)}
+          </Text>
           <Text style={[common.muted, { fontSize: 9 }]}>livello</Text>
         </View>
         <View style={[styles.cell, { width: COLUMNS[11].width }]}>

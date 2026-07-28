@@ -63,7 +63,28 @@ export default function Watchlist({
 
       {tab === "long" && (
         <div className="card">
-          <WatchTable rows={rows} market={market} onPlan={onPlan} />
+          {market === "crypto" && rows.length === 0 && regime?.mode === "short" && (
+            <div className="empty" style={{ textAlign: "left", padding: 16 }}>
+              <strong>Regime ribassista: lato long senza contesto operativo</strong>
+              <p className="muted" style={{ marginTop: 8, marginBottom: 8 }}>
+                Il sistema sta funzionando, non è un errore. In regime short non
+                popoliamo la watchlist long: non ci sono situazioni long operative da
+                seguire ora.
+              </p>
+              <p style={{ marginBottom: 0 }}>
+                <button type="button" className="btn small" onClick={() => setTab("bearish")}>
+                  Apri tab Contesto ribassista
+                </button>
+                {" · "}
+                <a href="#playbook-contesto-ribassista" className="ticker-link">
+                  Scheda playbook contesto_ribassista
+                </a>
+              </p>
+            </div>
+          )}
+          {(rows.length > 0 || !(market === "crypto" && regime?.mode === "short")) && (
+            <WatchTable rows={rows} market={market} onPlan={onPlan} />
+          )}
         </div>
       )}
 

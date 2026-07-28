@@ -20,8 +20,8 @@ const CHECKLIST = [
   "Il regime (semaforo) consente questa direzione?",
   "L'asset è nel top/bottom 20% di forza relativa?",
   'Setup A o B completo su Daily? (non "quasi")',
-  "Trigger confermato su 4H con volume?",
-  "Stop definito e distanza ≤ 2.5 ATR?",
+  "Rottura confermata su 4H con volume?",
+  "Invalidazione definita e distanza ≤ 2.5 ATR?",
   "Rischio aperto totale dopo questo trade ≤ 4%?",
   "Niente earnings/eventi macro nelle prossime 48h?",
   "(Crypto) Funding non estremo? Non è weekend?",
@@ -34,7 +34,9 @@ export default function PlannerScreen() {
   const [market, setMarket] = useState<"crypto" | "stocks">(plannedRow?.market ?? "crypto");
   const [direction, setDirection] = useState<"long" | "short">(plannedRow?.direction ?? "long");
   const [setup, setSetup] = useState<"A" | "B">(plannedRow?.setup ?? "A");
-  const [entry, setEntry] = useState(plannedRow ? String(plannedRow.entry_trigger) : "");
+  const [entry, setEntry] = useState(
+    plannedRow ? String(plannedRow.breakout_level ?? plannedRow.entry_trigger) : ""
+  );
   const [stop, setStop] = useState(plannedRow ? String(plannedRow.stop) : "");
   const [sizing, setSizing] = useState<Sizing | null>(null);
   const [sizingError, setSizingError] = useState<string | null>(null);
@@ -52,7 +54,7 @@ export default function PlannerScreen() {
       setMarket(plannedRow.market);
       setDirection(plannedRow.direction);
       setSetup(plannedRow.setup);
-      setEntry(String(plannedRow.entry_trigger));
+      setEntry(String(plannedRow.breakout_level ?? plannedRow.entry_trigger));
       setStop(String(plannedRow.stop));
       setChecks(CHECKLIST.map(() => false));
       setSaved(null);

@@ -7,8 +7,8 @@ const CHECKLIST = [
   "Il regime (semaforo) consente questa direzione?",
   "L'asset è nel top/bottom 20% di forza relativa?",
   "Setup A o B completo su Daily? (non \"quasi\")",
-  "Trigger confermato su 4H con volume?",
-  "Stop definito e distanza ≤ 2.5 ATR?",
+  "Rottura confermata su 4H con volume?",
+  "Invalidazione definita e distanza ≤ 2.5 ATR?",
   "Rischio aperto totale dopo questo trade ≤ 4%?",
   "Niente earnings/eventi macro nelle prossime 48h?",
   "(Crypto) Funding non estremo? Non è weekend?",
@@ -36,7 +36,9 @@ export default function Planner({
   const [market, setMarket] = useState(prefill?.market ?? "crypto");
   const [direction, setDirection] = useState(prefill?.direction ?? "long");
   const [setup, setSetup] = useState(prefill?.setup ?? "A");
-  const [entry, setEntry] = useState(prefill ? String(prefill.entry_trigger) : "");
+  const [entry, setEntry] = useState(
+    prefill ? String(prefill.breakout_level ?? prefill.entry_trigger) : ""
+  );
   const [stop, setStop] = useState(prefill ? String(prefill.stop) : "");
   const [timeframe, setTimeframe] = useState(prefill?.entry_tf ?? "D");
   const [pattern, setPattern] = useState(patternFromSetup(prefill?.setup ?? "A"));
@@ -66,7 +68,7 @@ export default function Planner({
       setMarket(prefill.market);
       setDirection(prefill.direction);
       setSetup(prefill.setup);
-      setEntry(String(prefill.entry_trigger));
+      setEntry(String(prefill.breakout_level ?? prefill.entry_trigger));
       setStop(String(prefill.stop));
       setTimeframe(prefill.entry_tf ?? "D");
       setPattern(patternFromSetup(prefill.setup));

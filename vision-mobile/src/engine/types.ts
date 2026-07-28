@@ -24,6 +24,9 @@ export interface WatchRow {
   rvol: number;
   last_price: number;
   setup: "A" | "B";
+  /** Livello di rottura (user-facing). Alias di entry_trigger. */
+  breakout_level?: number;
+  /** @deprecated preferire breakout_level in UI */
   entry_trigger: number;
   stop: number;
   atr: number;
@@ -74,6 +77,7 @@ export interface AppState {
   last_error: string | null;
   regimes: Record<string, Regime>;
   watchlist: { crypto: WatchRow[]; stocks: WatchRow[] };
+  bearish_context?: { crypto: WatchRow[]; stocks: WatchRow[] };
   alerts: Alert[];
   unread_alerts: number;
 }

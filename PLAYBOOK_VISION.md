@@ -206,7 +206,7 @@ migliori nascono spesso così. Scenario di massima attenzione e minima azione.
 (range della barra ≥ 2× ATR): lo squeeze è finito, sei in ritardo — cambia
 scheda, non inseguire.
 
-**Errore tipico.** Farsi triggerare dal 15m mentre il daily non ha ancora
+**Errore tipico.** Farsi richiamare dall'ingresso sul 15m mentre il daily non ha ancora
 deciso. Il TF piccolo dentro un TF grande compresso produce decine di falsi.
 
 ---

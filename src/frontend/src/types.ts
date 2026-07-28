@@ -27,6 +27,9 @@ export interface WatchRow {
   price_asof?: string;
   price_source?: string;
   setup: "A" | "B";
+  /** Livello di rottura (nome user-facing). Alias di entry_trigger legacy. */
+  breakout_level?: number;
+  /** @deprecated preferire breakout_level in UI */
   entry_trigger: number;
   stop: number;
   atr: number;
