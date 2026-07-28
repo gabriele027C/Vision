@@ -34,6 +34,20 @@ export interface CompressionMetrics {
   last: number;
   rng_high: number;
   rng_low: number;
+  bbw_last: number;
+  bbw_thresh: number;
+}
+
+/** Quantile lineare (pandas Series.quantile default) — riferimento Python. */
+function quantileLinear(sortedAsc: number[], q: number): number {
+  if (!sortedAsc.length) return NaN;
+  if (sortedAsc.length === 1) return sortedAsc[0];
+  const pos = q * (sortedAsc.length - 1);
+  const lo = Math.floor(pos);
+  const hi = Math.ceil(pos);
+  if (lo === hi) return sortedAsc[lo];
+  const w = pos - lo;
+  return sortedAsc[lo] * (1 - w) + sortedAsc[hi] * w;
 }
 
 export function compressionMetrics(
@@ -58,9 +72,9 @@ export function compressionMetrics(
   const bbw = bollingerWidth(close);
   const bbwLast = bbw[bbw.length - 1];
   const look = p.SQUEEZE_LOOKBACK;
-  const slice = bbw.slice(bbw.length - look - 1, bbw.length - 1);
+  const slice = bbw.slice(bbw.length - look - 1, bbw.length - 1).filter((x) => Number.isFinite(x));
   const sorted = [...slice].sort((x, y) => x - y);
-  const bbwThresh = sorted[Math.floor(sorted.length * 0.1)] ?? sorted[0];
+  const bbwThresh = quantileLinear(sorted, 0.1);
   const squeeze = bbwLast <= bbwThresh;
 
   const rb = p.RANGE_BARS;
@@ -98,6 +112,8 @@ export function compressionMetrics(
     last,
     rng_high: rngHigh,
     rng_low: rngLow,
+    bbw_last: bbwLast,
+    bbw_thresh: bbwThresh,
   };
 }
 

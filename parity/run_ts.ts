@@ -15,7 +15,7 @@ import {
   oiDeltasFromHist,
 } from "../vision-mobile/src/engine/flow.ts";
 import { scenarioIdsForRow } from "../vision-mobile/src/engine/playbook.ts";
-import { positionSize } from "../vision-mobile/src/engine/sizing.ts";
+import { DEFAULT_TAKER_FEE, positionSize } from "../vision-mobile/src/engine/sizing.ts";
 import { detectSetupA, detectSetupB } from "../vision-mobile/src/engine/setups.ts";
 import { compressionMetrics, detectCompression } from "../vision-mobile/src/engine/timeframes.ts";
 import type { OHLCVBar, WatchRow } from "../vision-mobile/src/engine/types.ts";
@@ -53,6 +53,8 @@ function normMetrics(m: ReturnType<typeof compressionMetrics>) {
     last: m.last,
     rng_high: m.rng_high,
     rng_low: m.rng_low,
+    bbw_last: m.bbw_last,
+    bbw_thresh: m.bbw_thresh,
   };
 }
 
@@ -101,7 +103,7 @@ export function run(fixtures?: Record<string, unknown>) {
       half_size: boolean;
       direction: "long" | "short";
       max_leverage: number | null;
-      taker_fee: number;
+      taker_fee: number | null;
       market: "crypto" | "stocks";
       funding_est: number | null;
       days_held_est: number;
@@ -175,6 +177,7 @@ export function run(fixtures?: Record<string, unknown>) {
 
   const sizing: Record<string, unknown> = {};
   for (const c of data.sizing_cases) {
+    const fee = c.taker_fee == null ? DEFAULT_TAKER_FEE : c.taker_fee;
     const raw = positionSize(
       c.capital,
       c.risk_pct,
@@ -183,7 +186,7 @@ export function run(fixtures?: Record<string, unknown>) {
       c.half_size,
       c.direction,
       c.max_leverage,
-      c.taker_fee,
+      fee,
       c.market,
       c.funding_est,
       c.days_held_est

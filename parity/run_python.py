@@ -11,6 +11,7 @@ sys.path.insert(0, str(BACKEND))
 
 import pandas as pd
 
+from engine.indicators import bollinger_width
 from engine.confluence import confluence_score
 from engine.flow import (
     build_flow_snapshot,
@@ -20,7 +21,7 @@ from engine.flow import (
     oi_deltas_from_hist,
 )
 from engine.playbook import scenario_ids_for_row
-from engine.sizing import position_size
+from engine.sizing import DEFAULT_TAKER_FEE, position_size
 from engine.setups import detect_setup_a, detect_setup_b
 from engine.timeframes import compression_metrics, detect_compression
 
@@ -64,6 +65,8 @@ def _norm_metrics(m: dict | None) -> dict | None:
         "last",
         "rng_high",
         "rng_low",
+        "bbw_last",
+        "bbw_thresh",
     ]
     return {k: m[k] for k in keys if k in m}
 
@@ -164,6 +167,9 @@ def run(fixtures: dict | None = None) -> dict:
 
     sizing = {}
     for case in data["sizing_cases"]:
+        fee = case.get("taker_fee", DEFAULT_TAKER_FEE)
+        if fee is None:
+            fee = DEFAULT_TAKER_FEE
         raw = position_size(
             case["capital"],
             case["risk_pct"],
@@ -172,7 +178,7 @@ def run(fixtures: dict | None = None) -> dict:
             case["half_size"],
             case["direction"],
             case["max_leverage"],
-            case["taker_fee"],
+            fee,
             case["market"],
             case["funding_est"],
             case["days_held_est"],

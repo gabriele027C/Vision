@@ -7074,6 +7074,20 @@
       "days_held_est": 0.0
     },
     {
+      "id": "default_fee",
+      "capital": 4000.0,
+      "risk_pct": 1.0,
+      "entry": 100.0,
+      "stop": 95.0,
+      "half_size": false,
+      "direction": "long",
+      "max_leverage": null,
+      "taker_fee": null,
+      "market": "crypto",
+      "funding_est": null,
+      "days_held_est": 0.0
+    },
+    {
       "id": "stocks_2x",
       "capital": 10000.0,
       "risk_pct": 1.0,
