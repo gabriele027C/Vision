@@ -24,8 +24,13 @@ STOCK_MIN_ADR_PCT = 2.0
 # --- Strategia (vedi docs/STRATEGIA_SWING.md) ---
 RS_TOP_PERCENTILE = 0.80      # long: top 20%
 RS_BOTTOM_PERCENTILE = 0.20   # short: bottom 20%
-RVOL_INTEREST = 1.5           # soglia interesse istituzionale
-RVOL_BREAKOUT = 2.0           # soglia Setup B
+# RVOL_* = parametri di DETECTION/ranking screener (Setup B, hard-filter opzionale).
+# NON sono le soglie qualitative di classificazione flusso del playbook:
+# quelle vivono in PLAYBOOK_THRESHOLDS["rvol"] (high/low) usate da confluence,
+# playbook e bucket journal. I valori numerici possono coincidere (1.5) ma il
+# ruolo è distinto — non unificare in un solo namespace senza perdere il significato.
+RVOL_INTEREST = 1.5           # detection: interesse istituzionale / rank score
+RVOL_BREAKOUT = 2.0           # detection: soglia breakout Setup B
 # RVOL nello screener: default = punteggio combinato 0.7*RS + 0.3*RVOL cappato
 # (ordina i candidati, non li taglia). True = scarta i candidati con
 # RVOL < RVOL_INTEREST. Confrontare le due varianti con engine/backtest.py.
@@ -33,7 +38,7 @@ RVOL_HARD_FILTER = False
 MAX_STOP_ATR = 2.5            # geometria sfavorevole oltre questa distanza
 WATCHLIST_SIZE = 10
 VIX_HALT = 30.0
-FUNDING_EXTREME = 0.0005      # 0.05% per 8h
+FUNDING_EXTREME = 0.0005      # 0.05% per 8h — unico punto di verità funding estremo
 # Funding oltre FUNDING_EXTREME contro la direzione del trade: True = il row
 # diventa status "blocked" (non operabile), False = solo warning testuale.
 FUNDING_BLOCK = True
@@ -121,6 +126,8 @@ PLAYBOOK_THRESHOLDS = {
         "lookback_bars": 6,
     },
     "rvol": {
+        # Classificazione qualitativa (confluence / playbook / journal buckets).
+        # Detection/screener usa RVOL_INTEREST / RVOL_BREAKOUT (ruolo diverso).
         "high": 1.5,
         "low": 1.0,
     },

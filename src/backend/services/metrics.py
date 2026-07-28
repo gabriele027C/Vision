@@ -6,6 +6,7 @@ casuale a R:R 2:1 (WR atteso ≈ 33%). Non è un target di performance del siste
 from __future__ import annotations
 
 import database
+from config import FUNDING_EXTREME, PLAYBOOK_THRESHOLDS, RVOL_BREAKOUT
 
 VALIDATION_TRADES = 50
 MIN_EXPECTANCY = 0.15
@@ -37,21 +38,28 @@ def _group_expectancy(closed: list[dict], key: str) -> list[dict]:
 
 
 def _context_buckets(closed: list[dict]) -> dict[str, list[dict]]:
-    """Bucket di contesto (RVOL / funding / OI) quando i campi sono valorizzati."""
+    """Bucket di contesto (RVOL / funding / OI) — soglie da config, zero hardcode."""
+    rvol_thr = PLAYBOOK_THRESHOLDS.get("rvol", {})
+    rvol_high = float(rvol_thr.get("high", 1.5))
+    rvol_low = float(rvol_thr.get("low", 1.0))
+    oi_thr = PLAYBOOK_THRESHOLDS["oi"]
+    oi_up = float(oi_thr["up_pct_24h"])
+    oi_down = float(oi_thr["down_pct_24h"])
+    oi_collapse = float(oi_thr["collapse_pct_24h"])
 
     def bucket_rvol(v: float) -> str:
-        if v < 1.0:
-            return "<1.0"
-        if v < 1.5:
-            return "1.0-1.5"
-        if v < 2.0:
-            return "1.5-2.0"
-        return ">=2.0"
+        if v < rvol_low:
+            return f"<{rvol_low}"
+        if v < rvol_high:
+            return f"{rvol_low}-{rvol_high}"
+        if v < RVOL_BREAKOUT:
+            return f"{rvol_high}-{RVOL_BREAKOUT}"
+        return f">={RVOL_BREAKOUT}"
 
     def bucket_funding(v: float) -> str:
-        if v >= 0.0005:
+        if v >= FUNDING_EXTREME:
             return "extreme_long_pay"
-        if v <= -0.0005:
+        if v <= -FUNDING_EXTREME:
             return "extreme_short_pay"
         if v > 0:
             return "positive"
@@ -63,11 +71,11 @@ def _context_buckets(closed: list[dict]) -> dict[str, list[dict]]:
         # |v|<=1 → Δ frazione (FASE 4 può salvare delta); altrimenti livello assoluto.
         if abs(v) > 1.0:
             return "level"
-        if v <= -0.20:
+        if v <= oi_collapse:
             return "collapse"
-        if v < -0.05:
+        if v <= oi_down:
             return "down"
-        if v > 0.05:
+        if v >= oi_up:
             return "up"
         return "flat"
 
@@ -99,7 +107,6 @@ def _context_buckets(closed: list[dict]) -> dict[str, list[dict]]:
         "funding": collect("funding_at_entry", bucket_funding),
         "oi": collect("oi_at_entry", bucket_oi),
     }
-
 
 def _scenario_expectancy(closed: list[dict]) -> list[dict]:
     """Expectancy per scenario_id (playbook). Nota: sotto n=30 indicative."""

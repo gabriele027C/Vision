@@ -16,6 +16,8 @@ export const STOCK_MIN_ADR_PCT = 2.0;
 // Strategia
 export const RS_TOP_PERCENTILE = 0.80;
 export const RS_BOTTOM_PERCENTILE = 0.20;
+// RVOL_* = detection/ranking screener (NON le soglie qualitative playbook:
+// quelle sono in PLAYBOOK_THRESHOLDS.rvol). Valori possono coincidere, ruolo no.
 export const RVOL_INTEREST = 1.5;
 export const RVOL_BREAKOUT = 2.0;
 // RVOL nello screener: default = punteggio combinato 0.7*RS + 0.3*RVOL cappato
@@ -24,7 +26,7 @@ export const RVOL_HARD_FILTER = false;
 export const MAX_STOP_ATR = 2.5;
 export const WATCHLIST_SIZE = 10;
 export const VIX_HALT = 30.0;
-export const FUNDING_EXTREME = 0.0005;
+export const FUNDING_EXTREME = 0.0005; // unico punto di verità funding estremo
 // Funding oltre FUNDING_EXTREME contro la direzione: true = status "blocked".
 export const FUNDING_BLOCK = true;
 
@@ -93,6 +95,7 @@ export const PLAYBOOK_THRESHOLDS = {
     lookback_bars: 6,
   },
   rvol: {
+    // Classificazione qualitativa (confluence/playbook). Detection: RVOL_INTEREST/BREAKOUT.
     high: 1.5,
     low: 1.0,
   },
