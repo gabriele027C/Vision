@@ -14,6 +14,9 @@ __pycache__/
 # Research runtime cache (riproducibile con rebuild-cache)
 research/diag_cache/
 
+# Output intermedi parity (le fixture synthetic.json sono versionate)
+parity/fixtures/last_*.json
+
 # Residui locali di audit / debug (non versionare)
 src/backend/audit_*
 src/backend/btc_diag*
