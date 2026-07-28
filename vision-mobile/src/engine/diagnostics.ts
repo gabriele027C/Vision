@@ -14,6 +14,7 @@ import {
 } from "../config";
 import { fmt } from "../utils/format";
 import { adrPct, bollingerWidth, ema, rvol } from "./indicators";
+import { activeScenarios, buildAssetState } from "./playbook";
 import { naturalDirection, resolveCandidateDirection } from "./screener";
 import { marketParams, setupAMetrics, setupBMetrics } from "./setups";
 import type { AssetDiagnostics, FilterResult, FilterStatus, OHLCVBar } from "./types";
@@ -560,6 +561,15 @@ export function diagnoseAsset(
     watchlistCap: opts.cappedOut ?? false,
   });
 
+  const scenarios = activeScenarios(
+    buildAssetState({
+      market,
+      symbol,
+      direction,
+      setup: bestSetup ?? undefined,
+    })
+  );
+
   const closeDAsOf = barAsOf(bars);
   return {
     market,
@@ -581,5 +591,6 @@ export function diagnoseAsset(
     best_setup: bestSetup,
     on_watchlist: Boolean(opts.onWatchlist),
     blockers,
+    scenarios,
   };
 }

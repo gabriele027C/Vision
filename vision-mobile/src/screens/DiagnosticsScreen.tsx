@@ -59,7 +59,13 @@ function SetupBadge({ ok }: { ok: boolean }) {
 }
 
 function AssetCard({ asset }: { asset: AssetDiagnostics }) {
-  const [open, setOpen] = useState({ regime: true, screener: true, a: false, b: false });
+  const [open, setOpen] = useState({
+    regime: true,
+    screener: true,
+    scenarios: true,
+    a: false,
+    b: false,
+  });
 
   return (
     <View style={[common.card, styles.diagCard]}>
@@ -126,6 +132,37 @@ function AssetCard({ asset }: { asset: AssetDiagnostics }) {
           </>
         )}
       </View>
+
+      {(asset.scenarios?.length ?? 0) > 0 && (
+        <View style={styles.diagSection}>
+          <TouchableOpacity onPress={() => setOpen((o) => ({ ...o, scenarios: !o.scenarios }))}>
+            <Text style={styles.diagToggle}>
+              Scenari attivi ({asset.scenarios!.length}) {open.scenarios ? "▾" : "▸"}
+            </Text>
+          </TouchableOpacity>
+          {open.scenarios &&
+            asset.scenarios!.map((sc) => (
+              <View key={sc.id} style={[common.card, { marginTop: 8 }]}>
+                <Text style={styles.strong}>
+                  {sc.titolo}
+                  {!sc.lato_operativo ? " · protezione" : ""}
+                </Text>
+                <Text style={[common.muted, { fontSize: 11 }]}>{sc.id}</Text>
+                <Text style={{ marginTop: 6 }}>{sc.lettura}</Text>
+                <Text style={[common.muted, { marginTop: 6 }]}>Monitorare:</Text>
+                {sc.monitorare.map((m, i) => (
+                  <Text key={i} style={common.muted}>
+                    • {m}
+                  </Text>
+                ))}
+                <Text style={[common.muted, { marginTop: 6 }]}>
+                  Invalidazione: {sc.invalidazione}
+                </Text>
+                <Text style={[common.muted, { fontSize: 11, marginTop: 4 }]}>{sc.footer}</Text>
+              </View>
+            ))}
+        </View>
+      )}
 
       <View style={styles.diagSection}>
         <TouchableOpacity onPress={() => setOpen((o) => ({ ...o, a: !o.a }))}>

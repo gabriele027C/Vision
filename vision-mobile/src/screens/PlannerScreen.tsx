@@ -99,6 +99,13 @@ export default function PlannerScreen() {
       size: sizing.size_units,
       risk_amount: sizing.risk_amount,
       notes: `Pianificato dal Planner. Target 2R: ${target2r}`,
+      timeframe: plannedRow?.entry_tf ?? "D",
+      pattern: setup === "A" ? "pullback" : "compression",
+      oi_at_entry: plannedRow?.oi_delta_24h ?? null,
+      cvd_slope_at_entry: plannedRow?.cvd_slope ?? null,
+      funding_at_entry: plannedRow?.funding ?? null,
+      rvol_at_entry: plannedRow?.rvol ?? null,
+      scenario_ids: plannedRow?.scenario_ids ?? [],
     });
     setSaved(`${symbol} registrato nel journal come trade aperto.`);
     refresh();

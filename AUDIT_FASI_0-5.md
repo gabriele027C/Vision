@@ -307,3 +307,59 @@ npx tsc --noEmit (vision-mobile) → EXIT 0
 1–12 della lista precedente: **applicati** nei commit `ada60ac`…`65339f2` (BLOCCHI 1–6).
 
 FASE 5-BIS: sbloccata solo dopo approvazione esplicita di questo Post-fix.
+
+---
+
+## Post-fix addendum — mutation check + E2E live (2026-07-28 sera)
+
+### 1. Mutation check suite di parità
+
+Branch temporaneo `parity-mutation-test` (cancellato, non mergiato). Baseline PASS, poi 5 mutazioni TS una alla volta.
+
+| # | Mutazione | Esito | Campo catturato |
+|---|-----------|-------|-----------------|
+| (a) | Bollinger `ddof` popolazione→campionaria (`/length` → `/(length-1)`) | **FAIL catturato** (dopo fix suite) | `compression.*.metrics.bbw_last` / `bbw_thresh` |
+| (b) | CVD `up` +0.02 → +0.03 | **FAIL catturato** | `flow.cvd_flags[1].state: 'up' != 'flat'` |
+| (c) | TF 4H `INVALIDATION_ATR` 1.75 → 1.5 | **FAIL catturato** | `compression.4H.long.metrics.invalidation_atr_mult` + `stop`/`stop_dist` |
+| (d) | `CONFLUENCE_WEIGHTS.cvd_long` +10% (0.25→0.275) | **FAIL catturato** | `confluence.crypto_full.breakdown.cvd_long.*` |
+| (e) | `DEFAULT_TAKER_FEE` 0.00055 → 0.001 | **FAIL catturato** (dopo fix suite) | `sizing.default_fee.fee_round_trip` / `cost_r` / `net_2r_after_costs` |
+
+**Buchi chiusi prima di procedere:**
+- (a) non catturato al primo giro: BBW non era nel confronto → aggiunto `bbw_last`/`bbw_thresh` + quantile lineare TS=pandas (`2218f5e`).
+- (e) non catturato: tutte le fixture passavano `taker_fee` esplicito → aggiunto caso `default_fee` con `taker_fee: null`.
+
+Dopo il fix: **5/5 mutazioni catturate**. Branch eliminato. Parità dimostrata.
+
+### 2. Scan live E2E cronometrato
+
+- Codice: `origin/main` pulito; scanner invocato in-process (stesso codice del backend).
+- **Totale: 32.63 s** (&lt; 5 min) · `last_error: null` · **zero ERROR/Exception** in `parity/live_scan_e2e.log`.
+
+| Fase | Secondi |
+|------|---------|
+| Crypto: scarico dati Binance | 5.25 |
+| Crypto: screener RS | ~0 |
+| Crypto: detection setup | 1.03 |
+| Crypto: timing 1H/15m | ~0 (watchlist long vuota) |
+| Crypto: OI/CVD watchlist | ~0 (vuota) |
+| Crypto: prezzi live | 0.09 |
+| Stocks: universo | 1.48 |
+| Stocks: storico 518 titoli | 16.80 |
+| Stocks: screener | 0.08 |
+| Stocks: detection | 6.43 |
+| Stocks: prezzi live | 1.47 |
+
+- Regime crypto: **short** (BTC sotto EMA50/200) → watchlist long crypto **0**; bearish context **5**.
+- Stocks watchlist **10** con confluence + breakdown + `price_live: true` (es. IQV conf 98.4).
+- BTC diagnostica: OI=`104,495.01` (no scientific), CVD down, messaggio filtro `Prezzo … (close D @ …)`; live futures ≈63673.8 allegato nello JSON.
+- Pannello regime ribassista: screenshot `parity/regime_short_panel.png` (testo UI concordato).
+
+Artefatti: `parity/live_scan_e2e.json`, `parity/live_scan_e2e.log`, `parity/regime_short_panel.png`.
+
+### 3. Punto H aggiornato
+
+**PASS operativo** per l’uso mattutino (con caveat regime short spiegato in UI). Scan sotto i 5 minuti, zero errori, evidenze allegate.
+
+### 4. FASE 5-BIS
+
+Completata anche sul mobile: scenari in diagnostica, `scenario_ids` (+ snapshot flusso) dal Planner, alert `[scenario]` se `PLAYBOOK_IN_ALERTS`. Backend/web già pronti; parità scenari già in `parity/`.

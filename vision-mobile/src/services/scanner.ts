@@ -2,6 +2,7 @@
 import {
   FUNDING_BLOCK,
   FUNDING_EXTREME,
+  PLAYBOOK_IN_ALERTS,
   STOCK_MIN_ADR_PCT,
   STOCK_MIN_AVG_VOLUME,
   STOCK_MIN_PRICE,
@@ -24,7 +25,7 @@ import type {
 import { notify } from "./alerts";
 import { enrichRowWithFlow } from "./flowData";
 import { attachConfluence, sortByConfluence } from "../engine/confluence";
-import { scenarioIdsForRow } from "../engine/playbook";
+import { primaryAlertScenario, scenarioIdsForRow } from "../engine/playbook";
 import {
   PriceRefreshGate,
   applyLivePrices,
@@ -572,6 +573,16 @@ function finalize(market: "crypto" | "stocks", regime: Regime, rows: WatchRow[])
         row.symbol,
         `${row.symbol} entra in watchlist: ${setupLabel} + ${rsTxt}, rottura ${level}, invalidazione ${row.stop}, ${fundTxt}`
       );
+      if (PLAYBOOK_IN_ALERTS) {
+        const card = primaryAlertScenario(row);
+        if (card?.monitorare?.length) {
+          notify(
+            market,
+            row.symbol,
+            `[scenario] ${card.titolo} — verifica: ${card.monitorare[0]}`
+          );
+        }
+      }
     }
     if (row.status === "triggered") prevTriggered.add(key);
   }

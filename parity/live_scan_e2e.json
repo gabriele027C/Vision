@@ -1,0 +1,610 @@
+{
+  "started_at": "2026-07-28T18:18:02.747738+00:00",
+  "total_seconds": 32.63,
+  "phases": [
+    {
+      "phase": "Crypto: scarico dati Binance...",
+      "seconds": 5.25
+    },
+    {
+      "phase": "Crypto: screener forza relativa...",
+      "seconds": 0.0
+    },
+    {
+      "phase": "Crypto: rilevamento setup...",
+      "seconds": 1.03
+    },
+    {
+      "phase": "Crypto: timing 1H/15m su watchlist...",
+      "seconds": 0.0
+    },
+    {
+      "phase": "Crypto: OI/CVD su watchlist...",
+      "seconds": 0.0
+    },
+    {
+      "phase": "Crypto: aggiorno prezzi live futures...",
+      "seconds": 0.09
+    },
+    {
+      "phase": "Stocks: scarico universo S&P500 + Nasdaq100...",
+      "seconds": 1.48
+    },
+    {
+      "phase": "Stocks: scarico storico daily di 518 titoli (1-2 min)...",
+      "seconds": 16.8
+    },
+    {
+      "phase": "Stocks: screener forza relativa...",
+      "seconds": 0.08
+    },
+    {
+      "phase": "Stocks: rilevamento setup...",
+      "seconds": 6.43
+    },
+    {
+      "phase": "Stocks: aggiorno prezzi live... (fino a fine scan)",
+      "seconds": 1.47
+    }
+  ],
+  "last_error": null,
+  "regime_crypto": {
+    "market": "crypto",
+    "mode": "short",
+    "long_allowed": false,
+    "short_allowed": true,
+    "half_size": false,
+    "detail": {
+      "BTC_vs_EMA200": "below",
+      "BTC_vs_EMA50": "below"
+    }
+  },
+  "watchlist_crypto_n": 0,
+  "watchlist_stocks_n": 10,
+  "bearish_crypto_n": 5,
+  "watchlist_crypto": [],
+  "watchlist_stocks": [
+    {
+      "symbol": "IQV",
+      "confluence": 98.4,
+      "confluence_breakdown": {
+        "tech": {
+          "weight": 0.15,
+          "raw": 1.0,
+          "contrib": 33.33,
+          "status": "ok",
+          "weight_norm": 0.3333
+        },
+        "rs": {
+          "weight": 0.2,
+          "raw": 0.964,
+          "contrib": 42.84,
+          "status": "ok",
+          "weight_norm": 0.4444
+        },
+        "cvd_long": {
+          "weight": 0.25,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "oi_expand": {
+          "weight": 0.2,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "funding_ok": {
+          "weight": 0.1,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "rvol": {
+          "weight": 0.1,
+          "raw": 1.0,
+          "contrib": 22.22,
+          "status": "ok",
+          "weight_norm": 0.2222
+        }
+      },
+      "last_price": 237.98,
+      "price_live": true,
+      "price_asof": "2026-07-28T18:18:02+00:00",
+      "status": "triggered"
+    },
+    {
+      "symbol": "HUM",
+      "confluence": 89.4,
+      "confluence_breakdown": {
+        "tech": {
+          "weight": 0.15,
+          "raw": 1.0,
+          "contrib": 33.33,
+          "status": "ok",
+          "weight_norm": 0.3333
+        },
+        "rs": {
+          "weight": 0.2,
+          "raw": 0.987,
+          "contrib": 43.87,
+          "status": "ok",
+          "weight_norm": 0.4444
+        },
+        "cvd_long": {
+          "weight": 0.25,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "oi_expand": {
+          "weight": 0.2,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "funding_ok": {
+          "weight": 0.1,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "rvol": {
+          "weight": 0.1,
+          "raw": 0.55,
+          "contrib": 12.22,
+          "status": "ok",
+          "weight_norm": 0.2222
+        }
+      },
+      "last_price": 386.11,
+      "price_live": true,
+      "price_asof": "2026-07-28T18:18:02+00:00",
+      "status": "watch"
+    },
+    {
+      "symbol": "CVS",
+      "confluence": 84.8,
+      "confluence_breakdown": {
+        "tech": {
+          "weight": 0.15,
+          "raw": 1.0,
+          "contrib": 33.33,
+          "status": "ok",
+          "weight_norm": 0.3333
+        },
+        "rs": {
+          "weight": 0.2,
+          "raw": 0.883,
+          "contrib": 39.24,
+          "status": "ok",
+          "weight_norm": 0.4444
+        },
+        "cvd_long": {
+          "weight": 0.25,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "oi_expand": {
+          "weight": 0.2,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "funding_ok": {
+          "weight": 0.1,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "rvol": {
+          "weight": 0.1,
+          "raw": 0.55,
+          "contrib": 12.22,
+          "status": "ok",
+          "weight_norm": 0.2222
+        }
+      },
+      "last_price": 108.99,
+      "price_live": true,
+      "price_asof": "2026-07-28T18:18:02+00:00",
+      "status": "near"
+    },
+    {
+      "symbol": "DDOG",
+      "confluence": 83.2,
+      "confluence_breakdown": {
+        "tech": {
+          "weight": 0.15,
+          "raw": 1.0,
+          "contrib": 33.33,
+          "status": "ok",
+          "weight_norm": 0.3333
+        },
+        "rs": {
+          "weight": 0.2,
+          "raw": 0.997,
+          "contrib": 44.31,
+          "status": "ok",
+          "weight_norm": 0.4444
+        },
+        "cvd_long": {
+          "weight": 0.25,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "oi_expand": {
+          "weight": 0.2,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "funding_ok": {
+          "weight": 0.1,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "rvol": {
+          "weight": 0.1,
+          "raw": 0.25,
+          "contrib": 5.56,
+          "status": "ok",
+          "weight_norm": 0.2222
+        }
+      },
+      "last_price": 251.295,
+      "price_live": true,
+      "price_asof": "2026-07-28T18:18:02+00:00",
+      "status": "watch"
+    },
+    {
+      "symbol": "HPE",
+      "confluence": 83.1,
+      "confluence_breakdown": {
+        "tech": {
+          "weight": 0.15,
+          "raw": 1.0,
+          "contrib": 33.33,
+          "status": "ok",
+          "weight_norm": 0.3333
+        },
+        "rs": {
+          "weight": 0.2,
+          "raw": 0.995,
+          "contrib": 44.22,
+          "status": "ok",
+          "weight_norm": 0.4444
+        },
+        "cvd_long": {
+          "weight": 0.25,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "oi_expand": {
+          "weight": 0.2,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "funding_ok": {
+          "weight": 0.1,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "rvol": {
+          "weight": 0.1,
+          "raw": 0.25,
+          "contrib": 5.56,
+          "status": "ok",
+          "weight_norm": 0.2222
+        }
+      },
+      "last_price": 44.41,
+      "price_live": true,
+      "price_asof": "2026-07-28T18:18:02+00:00",
+      "status": "watch"
+    },
+    {
+      "symbol": "PANW",
+      "confluence": 83.0,
+      "confluence_breakdown": {
+        "tech": {
+          "weight": 0.15,
+          "raw": 1.0,
+          "contrib": 33.33,
+          "status": "ok",
+          "weight_norm": 0.3333
+        },
+        "rs": {
+          "weight": 0.2,
+          "raw": 0.992,
+          "contrib": 44.09,
+          "status": "ok",
+          "weight_norm": 0.4444
+        },
+        "cvd_long": {
+          "weight": 0.25,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "oi_expand": {
+          "weight": 0.2,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "funding_ok": {
+          "weight": 0.1,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "rvol": {
+          "weight": 0.1,
+          "raw": 0.25,
+          "contrib": 5.56,
+          "status": "ok",
+          "weight_norm": 0.2222
+        }
+      },
+      "last_price": 321.675,
+      "price_live": true,
+      "price_asof": "2026-07-28T18:18:02+00:00",
+      "status": "watch"
+    },
+    {
+      "symbol": "FTNT",
+      "confluence": 82.9,
+      "confluence_breakdown": {
+        "tech": {
+          "weight": 0.15,
+          "raw": 1.0,
+          "contrib": 33.33,
+          "status": "ok",
+          "weight_norm": 0.3333
+        },
+        "rs": {
+          "weight": 0.2,
+          "raw": 0.99,
+          "contrib": 44.0,
+          "status": "ok",
+          "weight_norm": 0.4444
+        },
+        "cvd_long": {
+          "weight": 0.25,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "oi_expand": {
+          "weight": 0.2,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "funding_ok": {
+          "weight": 0.1,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "rvol": {
+          "weight": 0.1,
+          "raw": 0.25,
+          "contrib": 5.56,
+          "status": "ok",
+          "weight_norm": 0.2222
+        }
+      },
+      "last_price": 151.995,
+      "price_live": true,
+      "price_asof": "2026-07-28T18:18:02+00:00",
+      "status": "watch"
+    },
+    {
+      "symbol": "CRWD",
+      "confluence": 82.4,
+      "confluence_breakdown": {
+        "tech": {
+          "weight": 0.15,
+          "raw": 1.0,
+          "contrib": 33.33,
+          "status": "ok",
+          "weight_norm": 0.3333
+        },
+        "rs": {
+          "weight": 0.2,
+          "raw": 0.979,
+          "contrib": 43.51,
+          "status": "ok",
+          "weight_norm": 0.4444
+        },
+        "cvd_long": {
+          "weight": 0.25,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "oi_expand": {
+          "weight": 0.2,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "funding_ok": {
+          "weight": 0.1,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "rvol": {
+          "weight": 0.1,
+          "raw": 0.25,
+          "contrib": 5.56,
+          "status": "ok",
+          "weight_norm": 0.2222
+        }
+      },
+      "last_price": 183.99,
+      "price_live": true,
+      "price_asof": "2026-07-28T18:18:02+00:00",
+      "status": "watch"
+    },
+    {
+      "symbol": "GEN",
+      "confluence": 82.0,
+      "confluence_breakdown": {
+        "tech": {
+          "weight": 0.15,
+          "raw": 1.0,
+          "contrib": 33.33,
+          "status": "ok",
+          "weight_norm": 0.3333
+        },
+        "rs": {
+          "weight": 0.2,
+          "raw": 0.971,
+          "contrib": 43.16,
+          "status": "ok",
+          "weight_norm": 0.4444
+        },
+        "cvd_long": {
+          "weight": 0.25,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "oi_expand": {
+          "weight": 0.2,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "funding_ok": {
+          "weight": 0.1,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "rvol": {
+          "weight": 0.1,
+          "raw": 0.25,
+          "contrib": 5.56,
+          "status": "ok",
+          "weight_norm": 0.2222
+        }
+      },
+      "last_price": 27.535,
+      "price_live": true,
+      "price_asof": "2026-07-28T18:18:02+00:00",
+      "status": "triggered"
+    },
+    {
+      "symbol": "BAX",
+      "confluence": 80.0,
+      "confluence_breakdown": {
+        "tech": {
+          "weight": 0.15,
+          "raw": 1.0,
+          "contrib": 33.33,
+          "status": "ok",
+          "weight_norm": 0.3333
+        },
+        "rs": {
+          "weight": 0.2,
+          "raw": 0.925,
+          "contrib": 41.11,
+          "status": "ok",
+          "weight_norm": 0.4444
+        },
+        "cvd_long": {
+          "weight": 0.25,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "oi_expand": {
+          "weight": 0.2,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "funding_ok": {
+          "weight": 0.1,
+          "raw": null,
+          "contrib": null,
+          "status": "n/d"
+        },
+        "rvol": {
+          "weight": 0.1,
+          "raw": 0.25,
+          "contrib": 5.56,
+          "status": "ok",
+          "weight_norm": 0.2222
+        }
+      },
+      "last_price": 24.265,
+      "price_live": true,
+      "price_asof": "2026-07-28T18:18:02+00:00",
+      "status": "triggered"
+    }
+  ],
+  "btc_diag": {
+    "last_price": 63755.86,
+    "price_kind": "close_d",
+    "price_live": false,
+    "price_asof": "2026-07-27T00:00:00+00:00",
+    "close_d_price": 63755.86,
+    "close_d_asof": "2026-07-27T00:00:00+00:00",
+    "flow": {
+      "oi_value": 104495.012,
+      "oi_delta_24h": -0.004387,
+      "oi_delta_3d": -0.032118,
+      "oi_state": "flat",
+      "oi_arrow": "\u2192",
+      "cvd_slope": -0.020278,
+      "cvd_state": "down",
+      "cvd_arrow": "\u2193",
+      "price_state": "down",
+      "combo_key": "price_down|oi_flat|cvd_down",
+      "combo_label": "prezzo\u2193 + OI\u2192 + CVD\u2193",
+      "combo_message": "Combinazione mista \u2014 confronta col grafico; nessuna inferenza automatica."
+    },
+    "flow_filters": [
+      {
+        "id": "oi",
+        "label": "OI \u2192",
+        "status": "pass",
+        "value": 104495.01,
+        "threshold": null,
+        "message": "OI=104,495.01 \u00b7 \u039424h -0.44% (flat) \u00b7 \u03943d -3.21%"
+      },
+      {
+        "id": "cvd",
+        "label": "CVD \u2193",
+        "status": "warn",
+        "value": -0.020278,
+        "threshold": null,
+        "message": "pendenza norm. -0.0203 \u2192 down (ipotesi PLAYBOOK_THRESHOLDS)"
+      },
+      {
+        "id": "flow_combo",
+        "label": "Combinazione prezzo/OI/CVD",
+        "status": "pass",
+        "value": "prezzo\u2193 + OI\u2192 + CVD\u2193",
+        "threshold": null,
+        "message": "Combinazione mista \u2014 confronta col grafico; nessuna inferenza automatica."
+      }
+    ],
+    "screener_trend_msg": "Prezzo 63,755.86 (close D @ 2026-07-27 00:00 UTC) vs EMA50 65,032.24",
+    "live_price_futures": 63673.8,
+    "live_asof": "2026-07-28T18:18:51+00:00"
+  },
+  "short_regime_panel_should_show": true
+}

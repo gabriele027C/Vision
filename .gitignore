@@ -16,6 +16,8 @@ research/diag_cache/
 
 # Output intermedi parity (le fixture synthetic.json sono versionate)
 parity/fixtures/last_*.json
+parity/live_scan_e2e.log
+
 
 # Residui locali di audit / debug (non versionare)
 src/backend/audit_*

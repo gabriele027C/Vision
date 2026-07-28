@@ -242,6 +242,17 @@ export interface AssetDiagnostics {
   best_setup: "A" | "B" | null;
   on_watchlist: boolean;
   blockers: string[];
+  scenarios?: Array<{
+    id: string;
+    famiglia: string;
+    titolo: string;
+    lettura: string;
+    monitorare: string[];
+    invalidazione: string;
+    errore_tipico: string;
+    lato_operativo: boolean;
+    footer: string;
+  }>;
 }
 
 export interface DiagnosticsResponse {

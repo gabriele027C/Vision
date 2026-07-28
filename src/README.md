@@ -82,5 +82,5 @@ Dettaglio e comandi Windows: vedi [`../README.md`](../README.md).
 
 - L'app **non esegue ordini**: TradingView non espone API per il paper trading.
   Il design è volutamente semi-automatico (vedi §10 della strategia).
-- `test_journal_flow.py` è uno smoke test del flusso journal (backend attivo richiesto).
+- `journal_flow_smoke.py` è uno smoke test del flusso journal (backend attivo richiesto; non è un test pytest).
 - Database SQLite e cache in `src/backend/` (esclusi dal versionamento).
