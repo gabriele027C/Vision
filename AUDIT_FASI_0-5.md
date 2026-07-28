@@ -269,4 +269,41 @@ Due scan live consecutivi «stessi cached» non rieseguiti (scan stocks/crypto c
 
 ---
 
-*Fine report. Nessun fix applicato.*
+*Fine report originale. Nessun fix applicato in quella sessione.*
+
+---
+
+## Post-fix (2026-07-28, BLOCCHI 1–6)
+
+Tag baseline: `post-audit-baseline` @ `b35a445`.  
+HEAD post-fix: `65339f2` su `origin/main` (git status pulito, allineato).
+
+### Riesecuzione punti FAIL / PARZIALE
+
+| Punto | Prima | Dopo | Evidenza |
+|-------|-------|------|----------|
+| **A1 Parità Py↔TS** | FAIL | **PASS** | `python parity/run_parity.py` → `PASS: parita Py<->TS entro tolleranza (rel 1e-9)`. Suite in `parity/` + `test_parity_cross.py`. **0 divergenze** al primo run (nessuna correzione TS necessaria). |
+| **A5 Archivio ricerca** | PARZIALE | **PASS** | `research/` tracciato (`diag_backtest.py`, `ablation_study.py`, report, README). Baseline 2-simboli rieseguita: **n=23, WR r_net 13.0%**. |
+| **C Sizing** | PARZIALE | **PASS** | Docstring rete di sicurezza (irraggiungibile a 1%/5x = corretto). Test anomalo `max_leverage=20` + risk alto vs normali. UI web/mobile: `disabled={… \|\| !!sizingError \|\| sizing?.liq_safe === false}`. |
+| **D PREZZO / STATO** | PARZIALE | **PASS** | Fix prezzi pushati; diagnostica/watchlist etichettano `live` vs `close D` + timestamp; livelli come `livello`. Pannello regime short su watchlist crypto vuota. |
+| **F display OI** | PARZIALE (display FAIL) | **PASS** | `fmt_px(104500) == "104,500.00"`; messaggio OI senza `e+`. Test `test_display_fmt.py`, `test_oi_cache.py`. |
+| **H Prova d’uso** | FAIL | **PARZIALE** | Infrastruttura ok (deploy doc, parità, prezzi qualificati, sizing UI, journal note, OI at-entry). Resta: in regime short la watchlist long crypto è vuota *di proposito* (ora spiegata in UI); non ri-eseguito scan live end-to-end timed in questa passata. |
+
+### Suite test post-fix
+
+```
+python -m pytest -q   → 127 passed, 1 skipped (Yahoo rete)
+python parity/run_parity.py → PASS
+npx tsc --noEmit (vision-mobile) → EXIT 0
+```
+
+### Domanda onesta aggiornata (8:00)
+
+**Quasi sì, con un caveat.** Un utente che apre l’app dopo restart del backend ha: prezzi qualificati, sizing con blocco esplicito, journal con nota breakdown, pannello “regime short ≠ errore”, playbook e archivio ricerca.  
+**Caveat:** se il regime crypto è short, non ci sono situazioni long operative — deve usare il tab contesto + playbook; non è un bug, ma richiede di leggere quel pannello.
+
+### Fix list originale → stato
+
+1–12 della lista precedente: **applicati** nei commit `ada60ac`…`65339f2` (BLOCCHI 1–6).
+
+FASE 5-BIS: sbloccata solo dopo approvazione esplicita di questo Post-fix.
