@@ -36,7 +36,7 @@ src/
 # Terminale 1 — backend (porta 8000)
 cd src/backend
 pip install -r requirements.txt
-python -m uvicorn main:app --port 8000
+python -m uvicorn main:app --host 127.0.0.1 --port 8000
 
 # Terminale 2 — frontend (porta 5174)
 cd src/frontend
@@ -48,6 +48,16 @@ Apri **http://127.0.0.1:5174** (non usare la porta 5173: altre app Vite/PWA sul 
 possono avere un service worker registrato lì e il browser mostra l'app sbagliata). All'avvio il backend lancia subito una scansione
 completa (crypto ~15s, azioni ~1-2 min) e poi ripete ogni N minuti (configurabile
 nelle Impostazioni).
+
+## Deploy / restart dopo `git pull`
+
+Il backend **non** ricarica da solo il codice Python. Dopo ogni pull che tocca `src/backend/`:
+
+1. Termina il processo sulla porta 8000 (altrimenti resta il binario/vecchio codice in memoria).
+2. Rilancia `python -m uvicorn main:app --host 127.0.0.1 --port 8000` da `src/backend`.
+3. Controlla `/api/state`: `last_scan` fresco e, se previsto, `price_live: true` sulle righe.
+
+Dettaglio e comandi Windows: vedi [`../README.md`](../README.md).
 
 ## Flusso operativo
 

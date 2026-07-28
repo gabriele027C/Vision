@@ -9,3 +9,15 @@ src/backend/cache/
 src/frontend/node_modules/
 src/frontend/dist/
 __pycache__/
+.pytest_cache/
+
+# Research runtime cache (riproducibile con rebuild-cache)
+research/diag_cache/
+
+# Residui locali di audit / debug (non versionare)
+src/backend/audit_*
+src/backend/btc_diag*
+src/backend/btc_flow*
+src/backend/debug_verify_fasi.py
+vision_fix_critici.patch
+*.pyc
