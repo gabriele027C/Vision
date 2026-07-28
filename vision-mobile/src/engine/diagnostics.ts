@@ -20,6 +20,31 @@ import type { AssetDiagnostics, FilterResult, FilterStatus, OHLCVBar } from "./t
 
 const CRYPTO_MIXED_SYMBOLS = new Set(["BTCUSDT", "ETHUSDT"]);
 
+function barAsOf(bars: OHLCVBar[]): string | null {
+  if (!bars.length) return null;
+  const t = bars[bars.length - 1]?.time;
+  if (t == null) return null;
+  try {
+    return new Date(t).toISOString();
+  } catch {
+    return null;
+  }
+}
+
+function shortTs(iso: string | null): string {
+  if (!iso) return "n/d";
+  try {
+    const d = new Date(iso);
+    return d.toISOString().slice(0, 16).replace("T", " ") + " UTC";
+  } catch {
+    return iso.slice(0, 16);
+  }
+}
+
+function pxCloseD(px: number, asof: string | null): string {
+  return `${fmt(px)} (close D @ ${shortTs(asof)})`;
+}
+
 function jsonVal(v: unknown): number | string | null {
   if (v == null) return null;
   if (typeof v === "string") return v;
@@ -156,6 +181,7 @@ export function diagnoseScreener(
   const last = close[close.length - 1];
   const e50Series = ema(close, 50);
   const e50 = e50Series[e50Series.length - 1];
+  const asof = barAsOf(bars);
 
   if (market === "stocks") {
     const volume = bars.map((b) => b.volume);
@@ -172,7 +198,7 @@ export function diagnoseScreener(
       fr("stock_price", "Prezzo minimo", priceOk ? "pass" : "fail", {
         value: Math.round(last * 100) / 100,
         threshold: STOCK_MIN_PRICE,
-        message: `Prezzo ${last.toFixed(2)}$ — min ${STOCK_MIN_PRICE}$`,
+        message: `Prezzo ${pxCloseD(last, asof)} — min ${STOCK_MIN_PRICE}$`,
       })
     );
     results.push(
@@ -229,7 +255,7 @@ export function diagnoseScreener(
       fr("trend_ema50", "Prezzo sopra EMA50", trendOk ? "pass" : "fail", {
         value: Math.round(last * 10000) / 10000,
         threshold: Math.round(e50 * 10000) / 10000,
-        message: `Prezzo ${fmt(last)} vs EMA50 ${fmt(e50)}`,
+        message: `Prezzo ${pxCloseD(last, asof)} vs EMA50 ${fmt(e50)}`,
       })
     );
   } else {
@@ -238,7 +264,7 @@ export function diagnoseScreener(
       fr("trend_ema50", "Prezzo sotto EMA50", trendOk ? "pass" : "fail", {
         value: Math.round(last * 10000) / 10000,
         threshold: Math.round(e50 * 10000) / 10000,
-        message: `Prezzo ${fmt(last)} vs EMA50 ${fmt(e50)}`,
+        message: `Prezzo ${pxCloseD(last, asof)} vs EMA50 ${fmt(e50)}`,
       })
     );
   }
@@ -317,7 +343,7 @@ export function diagnoseSetupA(
     fr("setup_a_stop_geometry", "Geometria stop ≤ 2.5×ATR", m.stop_geometry_ok ? "pass" : "fail", {
       value: Math.round(m.stop_dist * 10000) / 10000,
       threshold: Math.round(MAX_STOP_ATR * m.atr * 10000) / 10000,
-      message: `Distanza trigger-stop ${fmt(m.stop_dist)} — max ${fmt(MAX_STOP_ATR * m.atr)}`,
+      message: `Distanza livello-invalidazione ${fmt(m.stop_dist)} — max ${fmt(MAX_STOP_ATR * m.atr)}`,
     }),
   ];
 
@@ -370,12 +396,12 @@ export function diagnoseSetupB(
     fr("setup_b_context_ema200", ctxLabel, m.context_ok ? "pass" : "fail", {
       value: Math.round(m.last * 10000) / 10000,
       threshold: Math.round(m.e200 * 10000) / 10000,
-      message: `Prezzo ${fmt(m.last)} vs EMA200 ${fmt(m.e200)}`,
+      message: `Prezzo ${pxCloseD(m.last, barAsOf(bars))} vs EMA200 ${fmt(m.e200)}`,
     }),
     fr("setup_b_stop_geometry", "Geometria stop ≤ 2.5×ATR", m.stop_geometry_ok ? "pass" : "fail", {
       value: Math.round(m.stop_dist * 10000) / 10000,
       threshold: Math.round(MAX_STOP_ATR * m.atr * 10000) / 10000,
-      message: `Distanza trigger-stop ${fmt(m.stop_dist)}`,
+      message: `Distanza livello-invalidazione ${fmt(m.stop_dist)}`,
     }),
     fr("setup_b_breakout", "Breakout con RVOL (stato)", m.breakout_triggered ? "warn" : "pass", {
       value: Math.round(m.rvol * 100) / 100,
@@ -534,10 +560,16 @@ export function diagnoseAsset(
     watchlistCap: opts.cappedOut ?? false,
   });
 
+  const closeDAsOf = barAsOf(bars);
   return {
     market,
     symbol,
     last_price: last,
+    price_kind: "close_d",
+    price_live: false,
+    price_asof: closeDAsOf ?? undefined,
+    close_d_price: last,
+    close_d_asof: closeDAsOf ?? undefined,
     rs_score: rsScore != null ? Math.round(rsScore * 1000) / 1000 : null,
     direction,
     suggested_direction: suggested,

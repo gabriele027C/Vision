@@ -143,6 +143,30 @@ function AssetCard({ asset }: { asset: AssetDiagnostics }) {
 
       </div>
 
+      <div className="muted mono" style={{ marginTop: 6, marginBottom: 8, fontSize: 13 }}>
+        {asset.price_live ? (
+          <>
+            Prezzo <strong>live</strong> {asset.last_price != null ? asset.last_price : "—"}
+            {asset.price_asof ? ` @ ${new Date(asset.price_asof).toLocaleString("it-IT")}` : ""}
+          </>
+        ) : (
+          <>
+            Prezzo <strong>close D</strong> {asset.last_price != null ? asset.last_price : "—"}
+            {asset.price_asof || asset.close_d_asof
+              ? ` @ ${new Date(asset.price_asof ?? asset.close_d_asof!).toLocaleString("it-IT")}`
+              : ""}
+          </>
+        )}
+        {asset.close_d_price != null && asset.price_live && (
+          <span style={{ marginLeft: 12 }}>
+            · filtri: close D {asset.close_d_price}
+            {asset.close_d_asof
+              ? ` @ ${new Date(asset.close_d_asof).toLocaleString("it-IT")}`
+              : ""}
+          </span>
+        )}
+      </div>
+
 
 
       {asset.blockers.length > 0 && (

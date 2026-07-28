@@ -131,11 +131,22 @@ function WatchRowItem({
         <Text style={[styles.cell, styles.mono, { width: COLUMNS[8].width }]}>
           {row.cvd_arrow ?? "—"}
         </Text>
-        <Text style={[styles.cell, styles.mono, { width: COLUMNS[9].width }]}>{fmt(row.last_price)}</Text>
-        <Text style={[styles.cell, styles.mono, { width: COLUMNS[10].width }]}>
-          {fmt(row.entry_trigger)}
-        </Text>
-        <Text style={[styles.cell, styles.mono, { width: COLUMNS[11].width }]}>{fmt(row.stop)}</Text>
+        <View style={[styles.cell, { width: COLUMNS[9].width }]}>
+          <Text style={[styles.mono, { fontSize: 11 }]}>{fmt(row.last_price)}</Text>
+          <Text style={[common.muted, { fontSize: 9 }]}>
+            {row.price_live
+              ? `live${row.price_asof ? ` ${new Date(row.price_asof).toLocaleTimeString()}` : ""}`
+              : "close D"}
+          </Text>
+        </View>
+        <View style={[styles.cell, { width: COLUMNS[10].width }]}>
+          <Text style={[styles.mono, { fontSize: 11 }]}>{fmt(row.entry_trigger)}</Text>
+          <Text style={[common.muted, { fontSize: 9 }]}>livello</Text>
+        </View>
+        <View style={[styles.cell, { width: COLUMNS[11].width }]}>
+          <Text style={[styles.mono, { fontSize: 11 }]}>{fmt(row.stop)}</Text>
+          <Text style={[common.muted, { fontSize: 9 }]}>livello</Text>
+        </View>
         <Text style={[styles.cell, styles.mono, { width: COLUMNS[12].width }]}>
           {row.funding !== null ? `${(row.funding * 100).toFixed(3)}%` : "—"}
         </Text>

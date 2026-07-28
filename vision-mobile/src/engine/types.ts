@@ -222,6 +222,11 @@ export interface AssetDiagnostics {
   market: "crypto" | "stocks";
   symbol: string;
   last_price: number;
+  price_kind?: "live" | "close_d";
+  price_live?: boolean;
+  price_asof?: string;
+  close_d_price?: number;
+  close_d_asof?: string;
   rs_score: number | null;
   direction: "long" | "short";
   suggested_direction: "long" | "short" | null;
@@ -233,8 +238,6 @@ export interface AssetDiagnostics {
   best_setup: "A" | "B" | null;
   on_watchlist: boolean;
   blockers: string[];
-  price_live?: boolean;
-  price_asof?: string;
 }
 
 export interface DiagnosticsResponse {

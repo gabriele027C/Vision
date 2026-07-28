@@ -13,7 +13,7 @@ import { useApp } from "../context/AppContext";
 import type { AssetDiagnostics, FilterResult } from "../engine/types";
 import { scanner } from "../services/scanner";
 import { colors, common, spacing } from "../theme";
-import { openTradingView } from "../utils/format";
+import { openTradingView, fmt } from "../utils/format";
 
 function statusIcon(status: FilterResult["status"]): string {
   if (status === "pass") return "✓";
@@ -82,6 +82,21 @@ function AssetCard({ asset }: { asset: AssetDiagnostics }) {
           </View>
         )}
       </View>
+
+      <Text style={[common.muted, common.mono, { marginBottom: 8, fontSize: 12 }]}>
+        {asset.price_live
+          ? `Prezzo live ${fmt(asset.last_price)}${
+              asset.price_asof ? ` @ ${new Date(asset.price_asof).toLocaleString()}` : ""
+            }`
+          : `Prezzo close D ${fmt(asset.last_price)}${
+              asset.price_asof || asset.close_d_asof
+                ? ` @ ${new Date(asset.price_asof ?? asset.close_d_asof!).toLocaleString()}`
+                : ""
+            }`}
+        {asset.close_d_price != null && asset.price_live
+          ? ` · filtri close D ${fmt(asset.close_d_price)}`
+          : ""}
+      </Text>
 
       {asset.blockers.length > 0 && (
         <View style={styles.blockers}>

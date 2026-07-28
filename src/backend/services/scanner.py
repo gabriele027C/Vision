@@ -1078,14 +1078,20 @@ class Scanner:
 
         diag = self._diagnose_symbols_for_market(market, ctx, watchlist_rows)
 
-        # Allinea PREZZO diagnostica al live già stampato sulla watchlist
+        # Allinea PREZZO diagnostica al live già stampato sulla watchlist,
+        # preservando close D (filtri) come campo separato.
         for row in watchlist_rows:
             sym = row.get("symbol")
             if sym and sym in diag and row.get("last_price") is not None:
-                diag[sym]["last_price"] = row["last_price"]
                 if row.get("price_live"):
+                    diag[sym]["last_price"] = row["last_price"]
                     diag[sym]["price_live"] = True
+                    diag[sym]["price_kind"] = "live"
                     diag[sym]["price_asof"] = row.get("price_asof")
+                else:
+                    diag[sym]["last_price"] = row["last_price"]
+                    diag[sym]["price_asof"] = row.get("price_asof") or diag[sym].get("close_d_asof")
+                    diag[sym]["price_kind"] = diag[sym].get("price_kind") or "close_d"
 
         with self._lock:
 

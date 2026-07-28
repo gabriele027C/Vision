@@ -233,6 +233,11 @@ export interface AssetDiagnostics {
   market: "crypto" | "stocks";
   symbol: string;
   last_price: number;
+  price_kind?: "live" | "close_d";
+  price_live?: boolean;
+  price_asof?: string | null;
+  close_d_price?: number | null;
+  close_d_asof?: string | null;
   rs_score: number | null;
   direction: "long" | "short";
   suggested_direction: "long" | "short" | null;

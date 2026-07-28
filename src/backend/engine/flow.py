@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 
 from config import PLAYBOOK_THRESHOLDS
+from engine.display_fmt import fmt_px
 
 OiState = Literal["up", "down", "flat", "collapse"]
 CvdState = Literal["up", "down", "flat", "down_strong"]
@@ -256,7 +257,7 @@ def flow_filters_from_snapshot(snap: dict) -> list[dict]:
             f"OI {snap.get('oi_arrow') or ''}".strip(),
             "warn" if oi_st in ("collapse", "down") else "pass",
             round(oi_v, 2) if oi_v is not None else None,
-            f"OI={oi_v:.4g} · Δ24h {d24_pct} ({oi_st}) · Δ3d {d3d_pct}"
+            f"OI={fmt_px(oi_v)} · Δ24h {d24_pct} ({oi_st}) · Δ3d {d3d_pct}"
             if oi_v is not None
             else f"Δ24h {d24_pct} ({oi_st}) · Δ3d {d3d_pct}",
         )

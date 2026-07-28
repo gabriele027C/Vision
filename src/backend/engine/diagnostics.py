@@ -19,6 +19,7 @@ from config import (
     STOCK_MIN_AVG_VOLUME,
     STOCK_MIN_PRICE,
 )
+from engine.display_fmt import bar_asof_iso, fmt_px, short_ts
 from engine.indicators import adr_pct, bollinger_width, ema, rvol
 from engine.screener import natural_direction, resolve_candidate_direction
 from engine.setups import _market_params, setup_a_metrics, setup_b_metrics
@@ -30,23 +31,12 @@ CRYPTO_MIXED_SYMBOLS = frozenset({"BTCUSDT", "ETHUSDT"})
 
 
 def _fmt_px(x: float) -> str:
-    """Prezzo leggibile: mai notazione scientifica (6.54e+04 → 65400.00)."""
-    try:
-        v = float(x)
-    except (TypeError, ValueError):
-        return str(x)
-    ax = abs(v)
-    if ax >= 1000:
-        return f"{v:.2f}"
-    if ax >= 1:
-        return f"{v:.2f}"
-    if ax >= 0.01:
-        return f"{v:.4f}"
-    if ax >= 1e-8:
-        s = f"{v:.10f}".rstrip("0").rstrip(".")
-        return s or "0"
-    return f"{v:.2e}"
+    return fmt_px(x)
 
+
+def _px_close_d(px: float, asof: str | None) -> str:
+    """Etichetta obbligatoria: valore da close daily + timestamp barra."""
+    return f"{fmt_px(px)} (close D @ {short_ts(asof)})"
 
 def _json_val(v: Any) -> float | str | bool | None:
     if v is None or isinstance(v, str):
@@ -178,6 +168,7 @@ def diagnose_screener(
     close = df["close"]
     last = float(close.iloc[-1])
     e50 = float(ema(close, 50).iloc[-1])
+    asof = bar_asof_iso(df)
 
     if market == "stocks":
         avg_vol = float(df["volume"].rolling(20).mean().iloc[-1])
@@ -192,7 +183,7 @@ def diagnose_screener(
                 "pass" if price_ok else "fail",
                 value=round(last, 2),
                 threshold=STOCK_MIN_PRICE,
-                message=f"Prezzo {last:.2f}$ — min {STOCK_MIN_PRICE}$",
+                message=f"Prezzo {_px_close_d(last, asof)} — min {STOCK_MIN_PRICE}$",
             )
         )
         results.append(
@@ -271,7 +262,7 @@ def diagnose_screener(
                 "pass" if trend_ok else "fail",
                 value=round(last, 4),
                 threshold=round(e50, 4),
-                message=f"Prezzo {_fmt_px(last)} vs EMA50 {_fmt_px(e50)}",
+                message=f"Prezzo {_px_close_d(last, asof)} vs EMA50 {_fmt_px(e50)}",
             )
         )
     else:
@@ -283,7 +274,7 @@ def diagnose_screener(
                 "pass" if trend_ok else "fail",
                 value=round(last, 4),
                 threshold=round(e50, 4),
-                message=f"Prezzo {_fmt_px(last)} vs EMA50 {_fmt_px(e50)}",
+                message=f"Prezzo {_px_close_d(last, asof)} vs EMA50 {_fmt_px(e50)}",
             )
         )
 
@@ -376,7 +367,7 @@ def diagnose_setup_a(df: pd.DataFrame, direction: str, market: str | None = None
             "pass" if m["stop_geometry_ok"] else "fail",
             value=round(m["stop_dist"], 4),
             threshold=round(MAX_STOP_ATR * m["atr"], 4),
-            message=f"Distanza trigger-stop {_fmt_px(m['stop_dist'])} — max {_fmt_px(MAX_STOP_ATR * m['atr'])}",
+            message=f"Distanza livello-invalidazione {_fmt_px(m['stop_dist'])} — max {_fmt_px(MAX_STOP_ATR * m['atr'])}",
         ),
     ]
     core_ok = m["aligned"] and m["in_zone"] and m["momentum_ok"] and m["vol_declining"]
@@ -439,7 +430,7 @@ def diagnose_setup_b(df: pd.DataFrame, direction: str, market: str | None = None
             "pass" if m["context_ok"] else "fail",
             value=round(m["last"], 4),
             threshold=round(m["e200"], 4),
-            message=f"Prezzo {_fmt_px(m['last'])} vs EMA200 {_fmt_px(m['e200'])}",
+            message=f"Prezzo {_px_close_d(m['last'], bar_asof_iso(df))} vs EMA200 {_fmt_px(m['e200'])}",
         ),
         _fr(
             "setup_b_stop_geometry",
@@ -447,7 +438,7 @@ def diagnose_setup_b(df: pd.DataFrame, direction: str, market: str | None = None
             "pass" if m["stop_geometry_ok"] else "fail",
             value=round(m["stop_dist"], 4),
             threshold=round(MAX_STOP_ATR * m["atr"], 4),
-            message=f"Distanza trigger-stop {_fmt_px(m['stop_dist'])}",
+            message=f"Distanza livello-invalidazione {_fmt_px(m['stop_dist'])}",
         ),
         _fr(
             "setup_b_breakout",
@@ -545,6 +536,8 @@ def diagnose_asset(
 
     last = float(df["close"].iloc[-1]) if len(df) else 0.0
     e50 = float(ema(df["close"], 50).iloc[-1]) if len(df) >= 50 else 0.0
+    close_d_asof = bar_asof_iso(df)
+    close_d_price = last
 
     suggested = natural_direction(rs_score, last, e50) if rs_score is not None and len(df) >= 220 else None
 
@@ -631,7 +624,13 @@ def diagnose_asset(
     return {
         "market": market,
         "symbol": symbol,
+        # last_price = close D di default; lo scanner può sovrascrivere con live.
         "last_price": last,
+        "price_kind": "close_d",
+        "price_live": False,
+        "price_asof": close_d_asof,
+        "close_d_price": close_d_price,
+        "close_d_asof": close_d_asof,
         "rs_score": round(rs_score, 3) if rs_score is not None else None,
         "direction": direction,
         "suggested_direction": suggested,

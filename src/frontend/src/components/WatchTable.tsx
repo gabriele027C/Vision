@@ -1,11 +1,13 @@
 import type { WatchRow } from "../types";
 
-/** Formato prezzi stile trading: punto decimale, niente migliaia IT
- *  (64841 → "64841.80", non "64.841,8"). */
+/** Formato prezzi stile trading: punto decimale, migliaia con virgola EN
+ *  (104500 → "104500.00" qui senza locale IT; ≥1000 con separatore in fmtQty). */
 function fmt(x: number): string {
   if (x == null || Number.isNaN(x)) return "—";
   const ax = Math.abs(x);
-  if (ax >= 1000) return x.toFixed(2);
+  if (ax >= 1000) {
+    return x.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
   if (ax >= 1) return x.toFixed(2);
   if (ax >= 0.01) return x.toFixed(4);
   return x.toPrecision(4);
@@ -74,8 +76,8 @@ export default function WatchTable({
           <th>OI</th>
           <th>CVD</th>
           <th>Prezzo</th>
-          <th>Rottura</th>
-          <th>Invalidazione</th>
+          <th title="Livello di struttura (non quotazione live)">Rottura</th>
+          <th title="Livello di struttura (non quotazione live)">Invalidazione</th>
           <th>Funding</th>
           <th></th>
         </tr>
@@ -133,17 +135,26 @@ export default function WatchTable({
             <td
               className="mono"
               title={
-                r.price_asof
-                  ? `Aggiornato ${new Date(r.price_asof).toLocaleString("it-IT")}${r.price_live ? " (live)" : ""}`
-                  : r.price_source
-                    ? `Fonte: ${r.price_source}`
-                    : "Prezzo allo scan"
+                r.price_live
+                  ? `live @ ${r.price_asof ? new Date(r.price_asof).toLocaleString("it-IT") : "n/d"}`
+                  : `close D @ ${r.price_asof ? new Date(r.price_asof).toLocaleString("it-IT") : "barra scan"}`
               }
             >
               {fmt(r.last_price)}
+              <div className="muted" style={{ fontSize: 10, lineHeight: 1.2 }}>
+                {r.price_live
+                  ? `live${r.price_asof ? ` ${new Date(r.price_asof).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}` : ""}`
+                  : "close D"}
+              </div>
             </td>
-            <td className="mono">{fmt(r.entry_trigger)}</td>
-            <td className="mono">{fmt(r.stop)}</td>
+            <td className="mono" title="Livello di rottura (struttura)">
+              {fmt(r.entry_trigger)}
+              <div className="muted" style={{ fontSize: 10 }}>livello</div>
+            </td>
+            <td className="mono" title="Livello di invalidazione (struttura)">
+              {fmt(r.stop)}
+              <div className="muted" style={{ fontSize: 10 }}>livello</div>
+            </td>
             <td className="mono">
               {r.funding !== null ? `${(r.funding * 100).toFixed(3)}%` : "—"}
             </td>
