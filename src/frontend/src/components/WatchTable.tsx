@@ -1,8 +1,13 @@
 import type { WatchRow } from "../types";
 
+/** Formato prezzi stile trading: punto decimale, niente migliaia IT
+ *  (64841 → "64841.80", non "64.841,8"). */
 function fmt(x: number): string {
-  if (x >= 1000) return x.toLocaleString("it-IT", { maximumFractionDigits: 2 });
-  if (x >= 1) return x.toFixed(2);
+  if (x == null || Number.isNaN(x)) return "—";
+  const ax = Math.abs(x);
+  if (ax >= 1000) return x.toFixed(2);
+  if (ax >= 1) return x.toFixed(2);
+  if (ax >= 0.01) return x.toFixed(4);
   return x.toPrecision(4);
 }
 
@@ -32,8 +37,9 @@ function confluenceTitle(r: WatchRow): string {
 }
 
 export function tvUrl(market: string, symbol: string): string {
-  // Crypto: coppie spot Binance. Azioni: TradingView usa il punto (BRK.B), Yahoo il trattino.
-  const tvSymbol = market === "crypto" ? `BINANCE:${symbol}` : symbol.replace("-", ".");
+  // Crypto: perpetual Binance (PREZZO = futures). Azioni: TV usa il punto (BRK.B).
+  const tvSymbol =
+    market === "crypto" ? `BINANCE:${symbol}.P` : symbol.replace("-", ".");
   return `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSymbol)}&interval=D`;
 }
 

@@ -51,12 +51,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const scanLoopActiveRef = useRef(false);
 
   const refresh = useCallback(() => {
-    try {
-      setState(buildState());
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
+    void (async () => {
+      try {
+        if (!scanner.snapshot().scanning) {
+          await scanner.refreshWatchlistPrices();
+        }
+        setState(buildState());
+        setError(null);
+      } catch (e) {
+        setError((e as Error).message);
+      }
+    })();
   }, []);
 
   const triggerScan = useCallback(async () => {

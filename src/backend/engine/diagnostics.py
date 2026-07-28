@@ -29,6 +29,25 @@ FilterResult = dict[str, Any]
 CRYPTO_MIXED_SYMBOLS = frozenset({"BTCUSDT", "ETHUSDT"})
 
 
+def _fmt_px(x: float) -> str:
+    """Prezzo leggibile: mai notazione scientifica (6.54e+04 → 65400.00)."""
+    try:
+        v = float(x)
+    except (TypeError, ValueError):
+        return str(x)
+    ax = abs(v)
+    if ax >= 1000:
+        return f"{v:.2f}"
+    if ax >= 1:
+        return f"{v:.2f}"
+    if ax >= 0.01:
+        return f"{v:.4f}"
+    if ax >= 1e-8:
+        s = f"{v:.10f}".rstrip("0").rstrip(".")
+        return s or "0"
+    return f"{v:.2e}"
+
+
 def _json_val(v: Any) -> float | str | bool | None:
     if v is None or isinstance(v, str):
         return v
@@ -252,7 +271,7 @@ def diagnose_screener(
                 "pass" if trend_ok else "fail",
                 value=round(last, 4),
                 threshold=round(e50, 4),
-                message=f"Prezzo {last:.4g} vs EMA50 {e50:.4g}",
+                message=f"Prezzo {_fmt_px(last)} vs EMA50 {_fmt_px(e50)}",
             )
         )
     else:
@@ -264,7 +283,7 @@ def diagnose_screener(
                 "pass" if trend_ok else "fail",
                 value=round(last, 4),
                 threshold=round(e50, 4),
-                message=f"Prezzo {last:.4g} vs EMA50 {e50:.4g}",
+                message=f"Prezzo {_fmt_px(last)} vs EMA50 {_fmt_px(e50)}",
             )
         )
 
@@ -357,7 +376,7 @@ def diagnose_setup_a(df: pd.DataFrame, direction: str, market: str | None = None
             "pass" if m["stop_geometry_ok"] else "fail",
             value=round(m["stop_dist"], 4),
             threshold=round(MAX_STOP_ATR * m["atr"], 4),
-            message=f"Distanza trigger-stop {m['stop_dist']:.4g} — max {MAX_STOP_ATR * m['atr']:.4g}",
+            message=f"Distanza trigger-stop {_fmt_px(m['stop_dist'])} — max {_fmt_px(MAX_STOP_ATR * m['atr'])}",
         ),
     ]
     core_ok = m["aligned"] and m["in_zone"] and m["momentum_ok"] and m["vol_declining"]
@@ -420,7 +439,7 @@ def diagnose_setup_b(df: pd.DataFrame, direction: str, market: str | None = None
             "pass" if m["context_ok"] else "fail",
             value=round(m["last"], 4),
             threshold=round(m["e200"], 4),
-            message=f"Prezzo {m['last']:.4g} vs EMA200 {m['e200']:.4g}",
+            message=f"Prezzo {_fmt_px(m['last'])} vs EMA200 {_fmt_px(m['e200'])}",
         ),
         _fr(
             "setup_b_stop_geometry",
@@ -428,7 +447,7 @@ def diagnose_setup_b(df: pd.DataFrame, direction: str, market: str | None = None
             "pass" if m["stop_geometry_ok"] else "fail",
             value=round(m["stop_dist"], 4),
             threshold=round(MAX_STOP_ATR * m["atr"], 4),
-            message=f"Distanza trigger-stop {m['stop_dist']:.4g}",
+            message=f"Distanza trigger-stop {_fmt_px(m['stop_dist'])}",
         ),
         _fr(
             "setup_b_breakout",

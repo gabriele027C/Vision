@@ -111,6 +111,36 @@ export async function fundingRate(symbol: string): Promise<number | null> {
   }
 }
 
+/** Prezzi futures USDT-M (allineati a OI/CVD/funding). Fallback spot. */
+export async function lastPrices(symbols: string[]): Promise<Record<string, number>> {
+  if (!symbols.length) return {};
+  const out: Record<string, number> = {};
+  await Promise.all(
+    symbols.map(async (sym) => {
+      try {
+        const data = await get<{ symbol: string; price: string }>(
+          `${FUTURES}/fapi/v1/ticker/price`,
+          { symbol: sym }
+        );
+        out[sym] = parseFloat(data.price);
+        return;
+      } catch (excF) {
+        console.warn(`[binance] last_prices futures ${sym}:`, excF);
+      }
+      try {
+        const data = await get<{ symbol: string; price: string }>(
+          `${SPOT}/api/v3/ticker/price`,
+          { symbol: sym }
+        );
+        out[sym] = parseFloat(data.price);
+      } catch (exc) {
+        console.warn(`[binance] last_prices ${sym} fallito (futures+spot):`, exc);
+      }
+    })
+  );
+  return out;
+}
+
 export interface OiHistPoint {
   timestamp: number;
   sumOpenInterest: number;

@@ -12,6 +12,7 @@ import {
   STOCK_MIN_AVG_VOLUME,
   STOCK_MIN_PRICE,
 } from "../config";
+import { fmt } from "../utils/format";
 import { adrPct, bollingerWidth, ema, rvol } from "./indicators";
 import { naturalDirection, resolveCandidateDirection } from "./screener";
 import { marketParams, setupAMetrics, setupBMetrics } from "./setups";
@@ -228,7 +229,7 @@ export function diagnoseScreener(
       fr("trend_ema50", "Prezzo sopra EMA50", trendOk ? "pass" : "fail", {
         value: Math.round(last * 10000) / 10000,
         threshold: Math.round(e50 * 10000) / 10000,
-        message: `Prezzo ${last.toPrecision(4)} vs EMA50 ${e50.toPrecision(4)}`,
+        message: `Prezzo ${fmt(last)} vs EMA50 ${fmt(e50)}`,
       })
     );
   } else {
@@ -237,7 +238,7 @@ export function diagnoseScreener(
       fr("trend_ema50", "Prezzo sotto EMA50", trendOk ? "pass" : "fail", {
         value: Math.round(last * 10000) / 10000,
         threshold: Math.round(e50 * 10000) / 10000,
-        message: `Prezzo ${last.toPrecision(4)} vs EMA50 ${e50.toPrecision(4)}`,
+        message: `Prezzo ${fmt(last)} vs EMA50 ${fmt(e50)}`,
       })
     );
   }
@@ -316,7 +317,7 @@ export function diagnoseSetupA(
     fr("setup_a_stop_geometry", "Geometria stop ≤ 2.5×ATR", m.stop_geometry_ok ? "pass" : "fail", {
       value: Math.round(m.stop_dist * 10000) / 10000,
       threshold: Math.round(MAX_STOP_ATR * m.atr * 10000) / 10000,
-      message: `Distanza trigger-stop ${m.stop_dist.toPrecision(4)} — max ${(MAX_STOP_ATR * m.atr).toPrecision(4)}`,
+      message: `Distanza trigger-stop ${fmt(m.stop_dist)} — max ${fmt(MAX_STOP_ATR * m.atr)}`,
     }),
   ];
 
@@ -369,12 +370,12 @@ export function diagnoseSetupB(
     fr("setup_b_context_ema200", ctxLabel, m.context_ok ? "pass" : "fail", {
       value: Math.round(m.last * 10000) / 10000,
       threshold: Math.round(m.e200 * 10000) / 10000,
-      message: `Prezzo ${m.last.toPrecision(4)} vs EMA200 ${m.e200.toPrecision(4)}`,
+      message: `Prezzo ${fmt(m.last)} vs EMA200 ${fmt(m.e200)}`,
     }),
     fr("setup_b_stop_geometry", "Geometria stop ≤ 2.5×ATR", m.stop_geometry_ok ? "pass" : "fail", {
       value: Math.round(m.stop_dist * 10000) / 10000,
       threshold: Math.round(MAX_STOP_ATR * m.atr * 10000) / 10000,
-      message: `Distanza trigger-stop ${m.stop_dist.toPrecision(4)}`,
+      message: `Distanza trigger-stop ${fmt(m.stop_dist)}`,
     }),
     fr("setup_b_breakout", "Breakout con RVOL (stato)", m.breakout_triggered ? "warn" : "pass", {
       value: Math.round(m.rvol * 100) / 100,

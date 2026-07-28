@@ -85,9 +85,28 @@ class PriceRefreshGate:
         self.ttl_s = ttl_s
         self._last = 0.0
 
-    def allow(self, now: float | None = None) -> bool:
+    def allow(self, now: float | None = None, *, force: bool = False) -> bool:
         now = time.time() if now is None else now
+        if force:
+            self._last = now
+            return True
         if now - self._last < self.ttl_s:
             return False
         self._last = now
         return True
+
+
+def stamp_live_prices(rows: list[dict], market: str) -> int:
+    """Imposta last_price al prezzo di mercato corrente su tutte le row (fine scan).
+
+    Crypto → last futures USDT-M; stocks → Yahoo 1m/daily sessione.
+    Non usa la chiusura daily/4H degli indicatori.
+    """
+    if not rows:
+        return 0
+    syms = [r["symbol"] for r in rows if r.get("symbol")]
+    if market == "crypto":
+        prices = fetch_live_prices(syms, [])
+    else:
+        prices = fetch_live_prices([], syms)
+    return apply_live_prices(rows, prices)

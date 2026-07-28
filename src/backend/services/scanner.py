@@ -51,85 +51,14 @@ from services.live_prices import (
     PriceRefreshGate,
     apply_live_prices,
     fetch_live_prices,
+    stamp_live_prices,
 )
-
-import time as _time
 
 
 log = logging.getLogger(__name__)
 
 MAX_4H_CHECKS = 15
 DIAG_TOP_N = 30
-# Refresh prezzi live su /api/state: TTL corto, allineato al poll UI (~20s).
-PRICE_REFRESH_TTL_S = 20
-
-
-def apply_funding_to_row(row: dict, fr: float | None, funding_block: bool | None = None) -> None:
-    """Applica il funding al row: veto (status 'blocked') se estremo contro la direzione.
-
-    Con funding_block=False (o FUNDING_BLOCK=False in config) il comportamento
-    torna al solo warning testuale."""
-
-    if fr is None:
-        return
-    if funding_block is None:
-        funding_block = FUNDING_BLOCK
-    row["funding"] = fr
-    extreme = (row["direction"] == "long" and fr > FUNDING_EXTREME) or (
-        row["direction"] == "short" and fr < -FUNDING_EXTREME
-    )
-    if not extreme:
-        return
-    if funding_block:
-        row["status"] = "blocked"
-        row["warnings"].append(
-            "Funding estremo contro la direzione: trade bloccato, rischio squeeze (§9)"
-        )
-    else:
-        row["warnings"].append("Funding estremo: affollamento, rischio squeeze (§9)")
-
-
-def reconcile_status_with_price(row: dict) -> None:
-    """Allinea status a last_price vs rottura (long: triggered ⇒ prezzo ≥ trigger).
-
-    Lo status 'triggered' nasce dalla conferma 4H allo scan; se il prezzo live
-    è tornato sotto la rottura, non può restare triggered (timestamp diversi).
-    Non promuove a triggered: quello richiede conferma volume 4H allo scan.
-    """
-    if row.get("status") == "blocked":
-        return
-    px = row.get("last_price")
-    trig = row.get("entry_trigger")
-    if px is None or trig is None:
-        return
-    try:
-        px = float(px)
-        trig = float(trig)
-    except (TypeError, ValueError):
-        return
-    direction = row.get("direction", "long")
-    status = row.get("status", "watch")
-    if direction == "long":
-        if status == "triggered" and px < trig:
-            row["status"] = "near" if px >= trig * 0.99 else "watch"
-            warn = "Prezzo live sotto rottura: stato riallineato (triggered era su close 4H)"
-            warnings = row.setdefault("warnings", [])
-            if warn not in warnings:
-                warnings.append(warn)
-        elif status == "watch" and px >= trig * 0.99:
-            row["status"] = "near"
-    else:
-        if status == "triggered" and px > trig:
-            row["status"] = "near" if px <= trig * 1.01 else "watch"
-            warn = "Prezzo live sopra rottura short: stato riallineato (triggered era su close 4H)"
-            warnings = row.setdefault("warnings", [])
-            if warn not in warnings:
-                warnings.append(warn)
-        elif status == "watch" and px <= trig * 1.01:
-            row["status"] = "near"
-
-
-
 
 
 def apply_funding_to_row(row: dict, fr: float | None, funding_block: bool | None = None) -> None:
@@ -210,7 +139,10 @@ class Scanner:
     def snapshot(self, *, refresh_prices: bool = True) -> dict:
         """Stato corrente. Con refresh_prices=True aggiorna last_price (live) sulle watchlist."""
         if refresh_prices and not self.scanning:
-            self.refresh_watchlist_prices()
+            # force=True: ogni poll UI deve mostrare il prezzo di mercato, non la daily chiusa
+            n = self.refresh_watchlist_prices(force=True)
+            if n == 0:
+                log.debug("refresh prezzi: 0 aggiornati (watchlist vuota o fetch fallito)")
 
         with self._lock:
 
@@ -232,9 +164,9 @@ class Scanner:
 
             }
 
-    def refresh_watchlist_prices(self) -> int:
+    def refresh_watchlist_prices(self, *, force: bool = False) -> int:
         """Aggiorna PREZZO live su crypto+stocks watchlist; riallinea status vs rottura."""
-        if not self._price_gate.allow():
+        if not self._price_gate.allow(force=force):
             return 0
         with self._lock:
             crypto = list(self.watchlist.get("crypto", []))
@@ -248,10 +180,19 @@ class Scanner:
         except Exception as exc:
             log.warning("refresh prezzi live fallito: %s", exc)
             return 0
+        if not prices:
+            log.warning(
+                "refresh prezzi: fetch vuoto (syms crypto=%s stocks=%s)",
+                crypto_syms,
+                stock_syms,
+            )
+            return 0
         with self._lock:
             n = 0
             n += apply_live_prices(self.watchlist.get("crypto", []), prices)
             n += apply_live_prices(self.watchlist.get("stocks", []), prices)
+            if n:
+                log.info("refresh prezzi live: aggiornati %d simboli", n)
         return n
 
 
@@ -365,13 +306,16 @@ class Scanner:
 
 
         data = {}
+        forming_px: dict[str, float] = {}
 
         for sym in binance_client.top_usdt_symbols():
 
             df = binance_client.klines(sym, "1d", 400)
 
             if len(df) >= 221:
-
+                # PREZZO UI: close della daily in formazione (~live).
+                # data[] scarta l'ultima barra per non contaminare RS/setup.
+                forming_px[sym] = float(df["close"].iloc[-1])
                 data[sym] = df.iloc[:-1]
 
 
@@ -385,6 +329,12 @@ class Scanner:
             data, scores, True, True
 
         )
+
+        # last_price dallo screener = daily chiusa (ieri); sostituisci subito
+        for c in candidates:
+            px = forming_px.get(c["symbol"])
+            if px is not None:
+                c["last_price"] = px
 
         # FASE 2: regime non filtra più (banner informativo). Long-only operativo.
 
@@ -437,10 +387,6 @@ class Scanner:
                     hist4, row["direction"], row["entry_trigger"]
 
                 )
-
-                row["last_price"] = float(hist4["close"].iloc[-1])
-
-                row["price_source"] = "4h_close"
 
                 c4 = detect_compression(hist4, "long", "4H")
 
@@ -605,6 +551,33 @@ class Scanner:
 
 
 
+        # PREZZO UI = ticker futures USDT-M (non close daily spot/ieri)
+        self._set_progress("Crypto: aggiorno prezzi live futures...")
+        n_live = stamp_live_prices(rows, "crypto")
+        if n_live < len(rows):
+            for row in rows:
+                if row.get("price_live"):
+                    continue
+                fut = binance_client.futures_klines(
+                    row["symbol"], "1d", 3, use_cache=False
+                )
+                if fut is not None and not fut.empty:
+                    row["last_price"] = float(fut["close"].iloc[-1])
+                    row["price_live"] = True
+            still = sum(1 for r in rows if not r.get("price_live"))
+            if still:
+                log.warning(
+                    "crypto prezzi futures: %d/%d senza ticker (fallback spot forming)",
+                    still,
+                    len(rows),
+                )
+                for row in rows:
+                    if row.get("price_live"):
+                        continue
+                    px = forming_px.get(row["symbol"])
+                    if px is not None:
+                        row["last_price"] = px
+
         # FASE 5: confluence solo ordinamento (mai esclusione)
 
         for row in rows:
@@ -745,12 +718,11 @@ class Scanner:
 
                 row["status"] = trigger_status_4h(df4, row["direction"], row["entry_trigger"])
 
-                # Stesso timestamp dello status: evita daily-close vs 4H-triggered incoerenti
-                row["last_price"] = float(df4["close"].iloc[-1])
-
-                row["price_source"] = "4h_close"
 
 
+        # PREZZO = quotazione di mercato corrente (non chiusura daily/4H degli indicatori)
+        self._set_progress("Stocks: aggiorno prezzi live...")
+        stamp_live_prices(rows, "stocks")
 
         for row in rows:
 
@@ -1106,6 +1078,15 @@ class Scanner:
 
         diag = self._diagnose_symbols_for_market(market, ctx, watchlist_rows)
 
+        # Allinea PREZZO diagnostica al live già stampato sulla watchlist
+        for row in watchlist_rows:
+            sym = row.get("symbol")
+            if sym and sym in diag and row.get("last_price") is not None:
+                diag[sym]["last_price"] = row["last_price"]
+                if row.get("price_live"):
+                    diag[sym]["price_live"] = True
+                    diag[sym]["price_asof"] = row.get("price_asof")
+
         with self._lock:
 
             self.diagnostics[market] = diag
@@ -1119,6 +1100,14 @@ class Scanner:
         self, market: str, regime: dict, rows: list[dict], bearish: list[dict] | None = None
 
     ) -> None:
+
+        # Ultimo passo obbligatorio: PREZZO = quotazione live (crypto futures / stocks Yahoo).
+        # Non fidarsi di last_price dallo screener (daily chiusa = ieri).
+        try:
+            n = stamp_live_prices(rows, market)
+            log.info("finalize %s: stamp live prices %d/%d", market, n, len(rows))
+        except Exception as exc:
+            log.warning("finalize %s: stamp live prices fallito: %s", market, exc)
 
         for row in rows:
 

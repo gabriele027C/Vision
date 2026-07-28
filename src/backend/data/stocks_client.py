@@ -170,8 +170,15 @@ def last_prices(tickers: list[str]) -> dict[str, float]:
         if df is None or df.empty:
             return None
         if isinstance(df.columns, pd.MultiIndex):
-            df = df.copy()
-            df.columns = df.columns.get_level_values(0)
+            names = list(df.columns.names or [])
+            # yfinance group_by=ticker → livelli (Ticker, Price); dopo data[tkr] resta Price
+            if "Price" in names:
+                df = df.copy()
+                df.columns = df.columns.get_level_values(names.index("Price"))
+            else:
+                # fallback: ultimo livello (Open/High/Low/Close/Volume)
+                df = df.copy()
+                df.columns = df.columns.get_level_values(-1)
         col = "Close" if "Close" in df.columns else ("close" if "close" in df.columns else None)
         if col is None:
             return None
@@ -183,6 +190,21 @@ def last_prices(tickers: list[str]) -> dict[str, float]:
     def _from_download(data, tickers_list: list[str]) -> dict[str, float]:
         found: dict[str, float] = {}
         if data is None or data.empty:
+            return found
+        # Anche con 1 ticker, group_by='ticker' può restituire MultiIndex (Ticker, Price)
+        multi_ticker = isinstance(data.columns, pd.MultiIndex) and (
+            "Ticker" in (data.columns.names or [])
+            or any(t in data.columns.get_level_values(0) for t in tickers_list)
+        )
+        if multi_ticker:
+            for tkr in tickers_list:
+                try:
+                    df = data[tkr]
+                except (KeyError, TypeError):
+                    continue
+                px = _last_close(df)
+                if px is not None:
+                    found[tkr] = px
             return found
         if len(tickers_list) == 1:
             px = _last_close(data)

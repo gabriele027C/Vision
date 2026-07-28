@@ -180,26 +180,50 @@ def funding_rate(symbol: str) -> float | None:
 
 
 def last_prices(symbols: list[str]) -> dict[str, float]:
-    """Prezzi spot correnti (GET /api/v3/ticker/price). Batch se possibile."""
+    """Prezzi futures USDT-M correnti (GET /fapi/v1/ticker/price).
+
+    Vision opera su derivati (OI/CVD/funding): PREZZO allineato al perpetual.
+    Fallback spot se il simbolo non ha contratto futures.
+    Per watchlist (≤50) usa richiesta per-symbol.
+    """
     if not symbols:
         return {}
     out: dict[str, float] = {}
+
+    def _one(sym: str) -> None:
+        try:
+            data = _get(f"{FUTURES}/fapi/v1/ticker/price", params={"symbol": sym})
+            out[sym] = float(data["price"])
+            return
+        except Exception as exc_f:
+            log.debug("last_prices futures %s: %s — provo spot", sym, exc_f)
+        try:
+            data = _get(f"{SPOT}/api/v3/ticker/price", params={"symbol": sym})
+            out[sym] = float(data["price"])
+        except Exception as exc:
+            log.warning("last_prices %s fallito (futures+spot): %s", sym, exc)
+
+    if len(symbols) <= 50:
+        for sym in symbols:
+            _one(sym)
+        return out
+
     try:
-        if len(symbols) == 1:
-            data = _get(f"{SPOT}/api/v3/ticker/price", params={"symbol": symbols[0]})
-            out[symbols[0]] = float(data["price"])
-            return out
-        # senza symbol → tutti i ticker; filtra in locale (una sola request)
-        data = _get(f"{SPOT}/api/v3/ticker/price")
+        data = _get(f"{FUTURES}/fapi/v1/ticker/price")
         want = set(symbols)
         for row in data:
             sym = row.get("symbol")
             if sym in want:
                 out[sym] = float(row["price"])
-        return out
+        for sym in symbols:
+            if sym not in out:
+                _one(sym)
     except Exception as exc:
-        log.warning("last_prices crypto fallito: %s", exc)
-        return out
+        log.warning("last_prices futures batch fallito: %s", exc)
+        for sym in symbols:
+            if sym not in out:
+                _one(sym)
+    return out
 
 
 def open_interest_hist(

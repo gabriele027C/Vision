@@ -323,3 +323,30 @@ export async function intraday4h(ticker: string): Promise<OHLCVBar[]> {
   }
   return out;
 }
+
+/** Prezzo di mercato corrente (Yahoo 1m → fallback daily con barra di oggi).
+ *  Speculare a stocks_client.last_prices — non usa dropUnclosedDaily. */
+export async function lastPrices(tickers: string[]): Promise<Record<string, number>> {
+  if (!tickers.length) return {};
+  const out: Record<string, number> = {};
+
+  await mapConcurrent(tickers, 6, async (tkr) => {
+    try {
+      const bars1m = await yahooChart(tkr, "1m", "1d");
+      if (bars1m.length) {
+        out[tkr] = bars1m[bars1m.length - 1].close;
+        return;
+      }
+    } catch {
+      /* fallback daily */
+    }
+    try {
+      const barsD = await yahooChart(tkr, "1d", "5d");
+      if (barsD.length) out[tkr] = barsD[barsD.length - 1].close;
+    } catch (exc) {
+      console.warn(`[yahoo] last_prices ${tkr} fallito:`, exc);
+    }
+  });
+
+  return out;
+}

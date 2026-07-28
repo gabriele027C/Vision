@@ -25,11 +25,17 @@ import { notify } from "./alerts";
 import { enrichRowWithFlow } from "./flowData";
 import { attachConfluence, sortByConfluence } from "../engine/confluence";
 import { scenarioIdsForRow } from "../engine/playbook";
+import {
+  PriceRefreshGate,
+  applyLivePrices,
+  fetchLivePrices,
+  stampLivePrices,
+} from "./livePrices";
 
 const MAX_4H_CHECKS = 15;
 const DIAG_TOP_N = 30;
 const CRYPTO_MIXED = new Set(["BTCUSDT", "ETHUSDT"]);
-
+const priceGate = new PriceRefreshGate();
 export interface ScannerSnapshot {
   scanning: boolean;
   progress: string;
@@ -124,6 +130,24 @@ export function snapshot(): ScannerSnapshot {
   };
 }
 
+/** Aggiorna PREZZO live su crypto+stocks; riallinea status vs rottura. */
+export async function refreshWatchlistPrices(force = false): Promise<number> {
+  if (!priceGate.allow(force)) return 0;
+  const cryptoSyms = watchlist.crypto.map((r) => r.symbol);
+  const stockSyms = watchlist.stocks.map((r) => r.symbol);
+  if (!cryptoSyms.length && !stockSyms.length) return 0;
+  try {
+    const prices = await fetchLivePrices(cryptoSyms, stockSyms);
+    return (
+      applyLivePrices(watchlist.crypto, prices) +
+      applyLivePrices(watchlist.stocks, prices)
+    );
+  } catch (exc) {
+    console.warn("refresh prezzi live fallito:", exc);
+    return 0;
+  }
+}
+
 export function getDiagnostics(
   market: "crypto" | "stocks",
   symbols?: string[] | null
@@ -180,10 +204,13 @@ async function scanCrypto(): Promise<void> {
   const regime = cryptoRegime(btc);
 
   const data: Record<string, OHLCVBar[]> = {};
+  const formingPx: Record<string, number> = {};
   const symbols = await binanceClient.topUsdtSymbols();
   for (const sym of symbols) {
     const raw = await binanceClient.klines(sym, "1d", 400);
     if (raw.length >= 221) {
+      // PREZZO UI: close daily in formazione (~live). data scarta l'ultima per RS/setup.
+      formingPx[sym] = raw[raw.length - 1].close;
       data[sym] = dropLast(raw);
     }
   }
@@ -198,6 +225,10 @@ async function scanCrypto(): Promise<void> {
   );
   if (regime.mode === "mixed") {
     candidates = candidates.filter((c) => CRYPTO_MIXED.has(c.symbol));
+  }
+  for (const c of candidates) {
+    const px = formingPx[c.symbol];
+    if (px != null) c.last_price = px;
   }
 
   setProgress("Crypto: rilevamento setup...");
@@ -216,6 +247,34 @@ async function scanCrypto(): Promise<void> {
   setProgress("Crypto: OI/CVD su watchlist...");
   for (const row of rows) {
     await enrichRowWithFlow(row);
+  }
+
+  setProgress("Crypto: aggiorno prezzi live futures...");
+  const nLive = await stampLivePrices(rows, "crypto");
+  if (nLive < rows.length) {
+    for (const row of rows) {
+      if (row.price_live) continue;
+      try {
+        const fut = await binanceClient.futuresKlines(row.symbol, "1d", 3);
+        if (fut.length) {
+          row.last_price = fut[fut.length - 1].close;
+          row.price_live = true;
+        }
+      } catch {
+        /* fallback sotto */
+      }
+    }
+    for (const row of rows) {
+      if (row.price_live) continue;
+      const px = formingPx[row.symbol];
+      if (px != null) row.last_price = px;
+    }
+    const still = rows.filter((r) => !r.price_live).length;
+    if (still) {
+      console.warn(
+        `crypto prezzi futures: ${still}/${rows.length} senza ticker (fallback spot forming)`
+      );
+    }
   }
 
   for (const row of rows) attachConfluence(row);
@@ -288,6 +347,15 @@ async function scanStocks(): Promise<void> {
     }
   }
 
+  setProgress("Stocks: aggiorno prezzi live...");
+  await stampLivePrices(rows, "stocks");
+
+  for (const row of rows) attachConfluence(row);
+  for (const row of rows) {
+    row.scenario_ids = scenarioIdsForRow(row);
+  }
+  const ordered = sortByConfluence(rows);
+
   const ctx: MarketCtx = {
     regime,
     data,
@@ -296,8 +364,8 @@ async function scanStocks(): Promise<void> {
     all_with_setup: allWithSetup,
     bench: spy,
   };
-  buildDiagnosticsCache("stocks", ctx, rows);
-  finalize("stocks", regime, rows);
+  buildDiagnosticsCache("stocks", ctx, ordered);
+  finalize("stocks", regime, ordered);
 }
 
 function detectSetups(
@@ -470,7 +538,18 @@ function buildDiagnosticsCache(
   ctx: MarketCtx,
   watchlistRows: WatchRow[]
 ): void {
-  diagnostics[market] = diagnoseSymbolsForMarket(market, ctx, watchlistRows);
+  const diag = diagnoseSymbolsForMarket(market, ctx, watchlistRows);
+  for (const row of watchlistRows) {
+    const hit = diag[row.symbol];
+    if (hit && row.last_price != null) {
+      hit.last_price = row.last_price;
+      if (row.price_live) {
+        hit.price_live = true;
+        hit.price_asof = row.price_asof;
+      }
+    }
+  }
+  diagnostics[market] = diag;
   marketCtx[market] = ctx;
 }
 
@@ -498,4 +577,5 @@ export const scanner = {
   runScan,
   getDiagnostics,
   getSymbolDiagnostic,
+  refreshWatchlistPrices,
 };

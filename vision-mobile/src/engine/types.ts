@@ -54,6 +54,8 @@ export interface WatchRow {
   >;
   confluence_renorm?: boolean;
   scenario_ids?: string[];
+  price_live?: boolean;
+  price_asof?: string;
 }
 
 export interface Alert {
@@ -231,6 +233,8 @@ export interface AssetDiagnostics {
   best_setup: "A" | "B" | null;
   on_watchlist: boolean;
   blockers: string[];
+  price_live?: boolean;
+  price_asof?: string;
 }
 
 export interface DiagnosticsResponse {

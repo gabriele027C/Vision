@@ -51,7 +51,8 @@ app.add_middleware(
 
 @app.get("/api/state")
 def get_state():
-    snap = scanner.snapshot()
+    # Sempre riallinea PREZZO al live (force): evita chiusura daily stale in UI.
+    snap = scanner.snapshot(refresh_prices=True)
     alerts = database.list_alerts()
     snap["alerts"] = alerts
     snap["unread_alerts"] = sum(1 for a in alerts if not a["read"])
